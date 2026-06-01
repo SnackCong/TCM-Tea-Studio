@@ -231,11 +231,60 @@ Restore procedure outline:
 4. Start/restart `tcm-tea-studio`.
 5. Verify login and data.
 
+## Safe Deployment
+
+Deployment script:
+
+```text
+/opt/tcm-tea-studio/scripts/deploy_safe.sh
+```
+
+The script performs these steps:
+
+1. Run a SQLite backup before changing code.
+2. Run `git pull --ff-only`.
+3. Check Python dependencies:
+   - If `requirements.txt` exists, install it with `python3 -m pip install -r requirements.txt`.
+   - If it does not exist, continue because the current app uses only Python standard library modules.
+4. Run Python syntax checks for `server.py` and `scripts/backup_sqlite.py`.
+5. Restart only the `tcm-tea-studio` service.
+6. Verify:
+   - `systemctl is-active tcm-tea-studio`
+   - `curl http://127.0.0.1:8080`
+   - `curl -Ik https://congnet.xyz`
+
+Run deployment:
+
+```bash
+cd /opt/tcm-tea-studio
+./scripts/deploy_safe.sh
+```
+
+The script does not restart the VPS, does not touch `hysteria-server` or `hy2`, and does not delete databases or backups.
+
+If deployment fails after pulling code, rollback without deleting data:
+
+```bash
+cd /opt/tcm-tea-studio
+git log --oneline -5
+git checkout <previous-known-good-commit>
+systemctl restart tcm-tea-studio
+systemctl is-active tcm-tea-studio
+curl -fsS http://127.0.0.1:8080 >/dev/null
+```
+
+After investigating, return to `main` when ready:
+
+```bash
+cd /opt/tcm-tea-studio
+git checkout main
+git pull --ff-only
+```
+
 ## Current Risks
 
 - HTTPS uses a self-signed origin certificate. This works with Cloudflare `Full`, but Cloudflare `Full strict` requires a Cloudflare Origin Certificate or publicly trusted certificate.
 - The stopped backup container is useful for rollback, but should not be kept forever without a retention decision.
-- Application data is stored in SQLite. Backups should be scheduled before real customer data accumulates.
 - SQLite backups are now scheduled daily, but restores should still be tested periodically.
 - The current Python server is intentionally lightweight. For higher traffic or multi-user production, consider moving behind a WSGI/ASGI server and adding structured logging.
 
@@ -243,5 +292,5 @@ Restore procedure outline:
 
 1. Generate a Cloudflare Origin Certificate and replace the current origin certificate, then switch Cloudflare SSL/TLS to `Full strict`.
 2. Test restoring a SQLite backup in a maintenance window or on a separate staging copy.
-3. Add a simple deployment script for `git pull && systemctl restart tcm-tea-studio`.
+3. Use `scripts/deploy_safe.sh` for routine deployments.
 4. Decide a retention date for `mynginx-before-persist-20260601052515`.
