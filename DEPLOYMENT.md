@@ -332,3 +332,4 @@ git pull --ff-only
 2. Test restoring a SQLite backup in a maintenance window or on a separate staging copy.
 3. Use `scripts/deploy_safe.sh` for routine deployments.
 4. Decide a retention date for `mynginx-before-persist-20260601052515`.
+5. Review [SECURITY.md](SECURITY.md) before deleting verification test data or tightening authentication.
