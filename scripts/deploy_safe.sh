@@ -44,8 +44,18 @@ echo "==> Restarting $SERVICE"
 systemctl restart "$SERVICE"
 
 echo "==> Verifying service"
+for attempt in $(seq 1 15); do
+  if systemctl is-active --quiet "$SERVICE" && curl -fsS http://127.0.0.1:8080 >/dev/null; then
+    break
+  fi
+  if [ "$attempt" = "15" ]; then
+    echo "Service did not become healthy on http://127.0.0.1:8080" >&2
+    systemctl status "$SERVICE" --no-pager -l >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
 systemctl is-active "$SERVICE"
-curl -fsS http://127.0.0.1:8080 >/dev/null
 curl -fsSkI https://congnet.xyz >/dev/null
 
 echo "deploy_ok revision=$(git rev-parse --short HEAD)"
