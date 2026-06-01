@@ -1,0 +1,1 @@
+17 3 * * * root TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 TCM_BACKUP_DIR=/root/tcm-tea-studio-backups/sqlite TCM_BACKUP_RETENTION_DAYS=14 /usr/bin/python3 /opt/tcm-tea-studio/scripts/backup_sqlite.py >> /var/log/tcm-tea-studio-backup.log 2>&1

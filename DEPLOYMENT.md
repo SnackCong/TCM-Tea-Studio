@@ -20,6 +20,7 @@ Application data:
 Backups:
 
 - `/root/tcm-tea-studio-backups`
+- `/root/tcm-tea-studio-backups/sqlite`
 
 ## Runtime Topology
 
@@ -173,16 +174,74 @@ Expected high-level results:
 - `nginx` is `active`
 - `tcm-tea-studio` is `active`
 
+## SQLite Backups
+
+Database path:
+
+```text
+/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3
+```
+
+Backup directory:
+
+```text
+/root/tcm-tea-studio-backups/sqlite
+```
+
+Backup script:
+
+```text
+/opt/tcm-tea-studio/scripts/backup_sqlite.py
+```
+
+Cron entry:
+
+```text
+/etc/cron.d/tcm-tea-studio-backup
+```
+
+Schedule:
+
+- Daily at `03:17` server time
+- File name format: `tcm_tea_studio_YYYYMMDD-HHMMSS.sqlite3`
+- Retention: keep backups from the last 14 days; remove older matching backup files
+
+The script uses Python's built-in `sqlite3.Connection.backup()` API against the live database in read-only mode, then runs `PRAGMA integrity_check` on the backup file.
+
+Manual backup test:
+
+```bash
+TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 \
+TCM_BACKUP_DIR=/root/tcm-tea-studio-backups/sqlite \
+TCM_BACKUP_RETENTION_DAYS=14 \
+/usr/bin/python3 /opt/tcm-tea-studio/scripts/backup_sqlite.py
+```
+
+List backups:
+
+```bash
+ls -lh /root/tcm-tea-studio-backups/sqlite
+```
+
+Restore procedure outline:
+
+1. Stop writes to the application during a maintenance window.
+2. Copy the current database aside.
+3. Copy the selected backup over `/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3`.
+4. Start/restart `tcm-tea-studio`.
+5. Verify login and data.
+
 ## Current Risks
 
 - HTTPS uses a self-signed origin certificate. This works with Cloudflare `Full`, but Cloudflare `Full strict` requires a Cloudflare Origin Certificate or publicly trusted certificate.
 - The stopped backup container is useful for rollback, but should not be kept forever without a retention decision.
 - Application data is stored in SQLite. Backups should be scheduled before real customer data accumulates.
+- SQLite backups are now scheduled daily, but restores should still be tested periodically.
 - The current Python server is intentionally lightweight. For higher traffic or multi-user production, consider moving behind a WSGI/ASGI server and adding structured logging.
 
 ## Suggested Next Steps
 
 1. Generate a Cloudflare Origin Certificate and replace the current origin certificate, then switch Cloudflare SSL/TLS to `Full strict`.
-2. Add an automated SQLite backup job for `/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3`.
+2. Test restoring a SQLite backup in a maintenance window or on a separate staging copy.
 3. Add a simple deployment script for `git pull && systemctl restart tcm-tea-studio`.
 4. Decide a retention date for `mynginx-before-persist-20260601052515`.
