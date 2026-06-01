@@ -111,19 +111,19 @@ function resetFormulaForm() {
 }
 
 function renderClientOptions() {
-  const options = state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)} · ${escapeHtml(client.constitution)}</option>`).join("");
+  const options = state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)} · ${escapeHtml(client.constitution || "未分类")}</option>`).join("");
   $("#formulaClient").innerHTML = options || `<option value="">请先建立顾客档案</option>`;
 }
 
 function renderClients() {
   const term = $("#clientSearch").value.trim().toLowerCase();
-  const clients = state.clients.filter((client) => [client.name, client.phone, client.constitution, client.concern].join(" ").toLowerCase().includes(term));
+  const clients = state.clients.filter((client) => [client.name, client.gender, client.phone, client.constitution, client.concern, client.notes].join(" ").toLowerCase().includes(term));
   $("#clientList").innerHTML = clients.map((client) => `
     <article class="record">
       <div class="record-main">
         <div>
-          <div class="record-title">${escapeHtml(client.name)} <span class="pill">${escapeHtml(client.constitution)}</span></div>
-          <div class="record-meta">${escapeHtml(client.phone || "未留手机号")} · ${escapeHtml(client.age || "年龄未填")}岁</div>
+          <div class="record-title">${escapeHtml(client.name)} <span class="pill">${escapeHtml(client.constitution || "未分类")}</span></div>
+          <div class="record-meta">${escapeHtml(client.gender || "性别未填")} · ${escapeHtml(client.age || "年龄未填")}岁 · ${escapeHtml(client.phone || "未留手机号")}</div>
           <div class="record-meta">${escapeHtml(client.concern || "暂无主诉")}</div>
         </div>
         <div class="record-actions">
@@ -246,9 +246,10 @@ function editClient(id) {
   if (!client) return;
   $("#clientId").value = client.id;
   $("#clientName").value = client.name;
+  $("#clientGender").value = client.gender || "";
   $("#clientPhone").value = client.phone || "";
   $("#clientAge").value = client.age || "";
-  $("#clientConstitution").value = client.constitution;
+  $("#clientConstitution").value = client.constitution === "未分类" ? "" : client.constitution;
   $("#clientConcern").value = client.concern || "";
   $("#clientNotes").value = client.notes || "";
   setView("clients");
@@ -276,7 +277,7 @@ function planForClient(id) {
   resetFormulaForm();
   $("#formulaClient").value = id;
   const client = clientById(id);
-  $("#formulaName").value = `${client.constitution}调理代茶饮`;
+  $("#formulaName").value = `${client.constitution || "体质"}调理代茶饮`;
   setView("formulas");
 }
 
@@ -301,6 +302,7 @@ function renderFormulaSheet() {
     <div class="sheet-grid">
       <div><strong>顾客：</strong>${escapeHtml(client.name || "未填写")}</div>
       <div><strong>体质：</strong>${escapeHtml(client.constitution || "未填写")}</div>
+      <div><strong>性别：</strong>${escapeHtml(client.gender || "未填写")}</div>
       <div><strong>年龄：</strong>${escapeHtml(client.age || "未填写")}</div>
       <div><strong>手机号：</strong>${escapeHtml(client.phone || "未填写")}</div>
       <div><strong>每日包数：</strong>${formula.dailyBags} 包</div>
@@ -392,9 +394,10 @@ function bindEvents() {
     const payload = {
       id,
       name: $("#clientName").value.trim(),
+      gender: $("#clientGender").value,
       phone: $("#clientPhone").value.trim(),
       age: $("#clientAge").value,
-      constitution: $("#clientConstitution").value,
+      constitution: $("#clientConstitution").value || "未分类",
       concern: $("#clientConcern").value.trim(),
       notes: $("#clientNotes").value.trim(),
     };

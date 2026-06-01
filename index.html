@@ -103,11 +103,21 @@
               </div>
               <input type="hidden" id="clientId" />
               <label>姓名<input id="clientName" required placeholder="例如：林女士" /></label>
+              <div class="two-col">
+                <label>性别
+                  <select id="clientGender">
+                    <option value="">未填写</option>
+                    <option value="女">女</option>
+                    <option value="男">男</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </label>
+                <label>年龄<input id="clientAge" type="number" min="1" max="120" placeholder="例如：36" /></label>
+              </div>
               <label>手机号<input id="clientPhone" placeholder="可选" /></label>
-              <label>年龄<input id="clientAge" type="number" min="1" max="120" placeholder="例如：36" /></label>
               <label>体质分类
-                <select id="clientConstitution" required>
-                  <option value="">请选择</option>
+                <select id="clientConstitution">
+                  <option value="">未分类</option>
                 </select>
               </label>
               <label>主诉/调理方向<textarea id="clientConcern" rows="4" placeholder="例如：易疲劳、睡眠浅、口干"></textarea></label>

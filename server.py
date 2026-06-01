@@ -23,10 +23,17 @@ SESSION_TTL_SECONDS = 60 * 60 * 12
 
 def connect():
     DATA_DIR.mkdir(exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def ensure_column(conn, table, column, definition):
+    columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def init_db():
@@ -51,6 +58,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS clients (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
+                gender TEXT,
                 phone TEXT,
                 age TEXT,
                 constitution TEXT NOT NULL,
@@ -77,6 +85,7 @@ def init_db():
             );
             """
         )
+        ensure_column(conn, "clients", "gender", "TEXT")
 
 
 def password_hash(password, salt=None):
@@ -120,6 +129,7 @@ def row_to_client(row):
     return {
         "id": row["id"],
         "name": row["name"],
+        "gender": row["gender"] or "",
         "phone": row["phone"] or "",
         "age": row["age"] or "",
         "constitution": row["constitution"],
@@ -301,15 +311,16 @@ class Handler(SimpleHTTPRequestHandler):
         with connect() as conn:
             conn.execute(
                 """
-                INSERT INTO clients (id, name, phone, age, constitution, concern, notes, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO clients (id, name, gender, phone, age, constitution, concern, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload.get("id") or f"client_{secrets.token_hex(8)}",
                     payload["name"],
+                    payload.get("gender", ""),
                     payload.get("phone", ""),
                     str(payload.get("age", "")),
-                    payload["constitution"],
+                    payload.get("constitution") or "未分类",
                     payload.get("concern", ""),
                     payload.get("notes", ""),
                     now,
@@ -325,14 +336,15 @@ class Handler(SimpleHTTPRequestHandler):
             conn.execute(
                 """
                 UPDATE clients
-                SET name = ?, phone = ?, age = ?, constitution = ?, concern = ?, notes = ?, updated_at = ?
+                SET name = ?, gender = ?, phone = ?, age = ?, constitution = ?, concern = ?, notes = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
                     payload["name"],
+                    payload.get("gender", ""),
                     payload.get("phone", ""),
                     str(payload.get("age", "")),
-                    payload["constitution"],
+                    payload.get("constitution") or "未分类",
                     payload.get("concern", ""),
                     payload.get("notes", ""),
                     now,
@@ -406,12 +418,13 @@ class Handler(SimpleHTTPRequestHandler):
             formula_id = f"formula_{secrets.token_hex(8)}"
             conn.execute(
                 """
-                INSERT INTO clients (id, name, phone, age, constitution, concern, notes, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO clients (id, name, gender, phone, age, constitution, concern, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     client_id,
                     "林女士",
+                    "女",
                     "13800000000",
                     "36",
                     "痰湿质",
