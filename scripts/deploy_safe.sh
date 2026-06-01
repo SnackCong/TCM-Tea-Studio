@@ -45,7 +45,7 @@ systemctl restart "$SERVICE"
 
 echo "==> Verifying service"
 for attempt in $(seq 1 15); do
-  if systemctl is-active --quiet "$SERVICE" && curl -fsS http://127.0.0.1:8080 >/dev/null; then
+  if systemctl is-active --quiet "$SERVICE" && curl -fsS http://127.0.0.1:8080 >/dev/null 2>&1; then
     break
   fi
   if [ "$attempt" = "15" ]; then
