@@ -100,6 +100,25 @@ def init_db():
                 updated_at INTEGER NOT NULL,
                 FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS client_formulas (
+                id TEXT PRIMARY KEY,
+                client_id TEXT NOT NULL,
+                client_session_id TEXT,
+                formula_date TEXT NOT NULL,
+                name TEXT NOT NULL,
+                herbs TEXT,
+                dosages TEXT,
+                preparation TEXT,
+                period TEXT,
+                modifications TEXT,
+                cautions TEXT,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+                FOREIGN KEY (client_session_id) REFERENCES client_sessions(id) ON DELETE SET NULL
+            );
             """
         )
         ensure_column(conn, "clients", "gender", "TEXT")
@@ -184,6 +203,25 @@ def row_to_client_session(row):
         "tongue": row["tongue"] or "",
         "pulse": row["pulse"] or "",
         "advice": row["advice"] or "",
+        "notes": row["notes"] or "",
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+
+
+def row_to_client_formula(row):
+    return {
+        "id": row["id"],
+        "clientId": row["client_id"],
+        "clientSessionId": row["client_session_id"] or "",
+        "formulaDate": row["formula_date"],
+        "name": row["name"],
+        "herbs": row["herbs"] or "",
+        "dosages": row["dosages"] or "",
+        "preparation": row["preparation"] or "",
+        "period": row["period"] or "",
+        "modifications": row["modifications"] or "",
+        "cautions": row["cautions"] or "",
         "notes": row["notes"] or "",
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
@@ -289,6 +327,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.update_client(unquote(path.removeprefix("/api/clients/")))
             if path == "/api/client-sessions" and method == "POST":
                 return self.create_client_session()
+            if path == "/api/client-formulas" and method == "POST":
+                return self.create_client_formula()
             if path == "/api/formulas" and method == "POST":
                 return self.create_formula()
             if path.startswith("/api/formulas/") and method == "PUT":
@@ -346,7 +386,14 @@ class Handler(SimpleHTTPRequestHandler):
                 row_to_client_session(row)
                 for row in conn.execute("SELECT * FROM client_sessions ORDER BY visit_date DESC, created_at DESC")
             ]
-        response_json(self, {"clients": clients, "formulas": formulas, "clientSessions": client_sessions})
+            client_formulas = [
+                row_to_client_formula(row)
+                for row in conn.execute("SELECT * FROM client_formulas ORDER BY formula_date DESC, created_at DESC")
+            ]
+        response_json(
+            self,
+            {"clients": clients, "formulas": formulas, "clientSessions": client_sessions, "clientFormulas": client_formulas},
+        )
 
     def create_client(self):
         payload = read_json(self)
@@ -445,6 +492,37 @@ class Handler(SimpleHTTPRequestHandler):
                     payload.get("usage", ""),
                     payload.get("cautions", ""),
                     json.dumps(payload.get("ingredients", []), ensure_ascii=False),
+                    now,
+                    now,
+                ),
+            )
+        response_json(self, {"ok": True}, HTTPStatus.CREATED)
+
+    def create_client_formula(self):
+        payload = read_json(self)
+        now = int(time.time())
+        session_id = payload.get("clientSessionId") or None
+        with connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO client_formulas
+                (id, client_id, client_session_id, formula_date, name, herbs, dosages, preparation, period,
+                 modifications, cautions, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.get("id") or f"client_formula_{secrets.token_hex(8)}",
+                    payload["clientId"],
+                    session_id,
+                    payload["formulaDate"],
+                    payload["name"],
+                    payload.get("herbs", ""),
+                    payload.get("dosages", ""),
+                    payload.get("preparation", ""),
+                    payload.get("period", ""),
+                    payload.get("modifications", ""),
+                    payload.get("cautions", ""),
+                    payload.get("notes", ""),
                     now,
                     now,
                 ),

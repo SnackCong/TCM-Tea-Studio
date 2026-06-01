@@ -4,6 +4,7 @@ const state = {
   clients: [],
   formulas: [],
   clientSessions: [],
+  clientFormulas: [],
   selectedClientId: "",
   currentView: "dashboard",
   user: null,
@@ -64,6 +65,7 @@ async function refreshData() {
   state.clients = data.clients || [];
   state.formulas = data.formulas || [];
   state.clientSessions = data.clientSessions || [];
+  state.clientFormulas = data.clientFormulas || [];
   renderAll();
 }
 
@@ -226,27 +228,52 @@ function resetSessionForm() {
   $("#sessionDate").value = todayISO();
 }
 
+function resetClientFormulaForm() {
+  $("#clientFormulaForm").reset();
+  $("#clientFormulaDate").value = todayISO();
+  renderClientFormulaSessionOptions();
+}
+
 function sessionsForClient(clientId) {
   return state.clientSessions
     .filter((item) => item.clientId === clientId)
     .sort((a, b) => `${b.visitDate}-${b.createdAt}`.localeCompare(`${a.visitDate}-${a.createdAt}`));
 }
 
+function formulasForClient(clientId) {
+  return state.clientFormulas
+    .filter((item) => item.clientId === clientId)
+    .sort((a, b) => `${b.formulaDate}-${b.createdAt}`.localeCompare(`${a.formulaDate}-${a.createdAt}`));
+}
+
 function viewClient(id) {
   state.selectedClientId = id;
   resetSessionForm();
+  resetClientFormulaForm();
   setView("clientDetail");
+}
+
+function renderClientFormulaSessionOptions() {
+  const select = $("#clientFormulaSession");
+  if (!select) return;
+  const sessions = sessionsForClient(state.selectedClientId);
+  select.innerHTML = `<option value="">不关联回访记录</option>` + sessions.map((item) => (
+    `<option value="${escapeHtml(item.id)}">${escapeHtml(item.visitDate)} · ${escapeHtml(item.complaintChange || "回访记录")}</option>`
+  )).join("");
 }
 
 function renderClientDetail() {
   const panel = $("#clientDetailPanel");
   const list = $("#sessionList");
-  if (!panel || !list) return;
+  const formulaList = $("#clientFormulaList");
+  if (!panel || !list || !formulaList) return;
 
   const client = clientById(state.selectedClientId);
   if (!client) {
     panel.innerHTML = `<div class="empty-state">请先从顾客档案列表选择一位客户。</div>`;
     list.innerHTML = `<div class="empty-state">暂无回访记录。</div>`;
+    formulaList.innerHTML = `<div class="empty-state">暂无茶方记录。</div>`;
+    renderClientFormulaSessionOptions();
     return;
   }
 
@@ -266,6 +293,7 @@ function renderClientDetail() {
   `;
 
   const sessions = sessionsForClient(client.id);
+  renderClientFormulaSessionOptions();
   list.innerHTML = sessions.map((item) => `
     <article class="record">
       <div class="record-main">
@@ -280,6 +308,28 @@ function renderClientDetail() {
       </div>
     </article>
   `).join("") || `<div class="empty-state">暂无回访记录。</div>`;
+
+  const clientFormulas = formulasForClient(client.id);
+  formulaList.innerHTML = clientFormulas.map((item) => {
+    const linkedSession = item.clientSessionId ? state.clientSessions.find((session) => session.id === item.clientSessionId) : null;
+    return `
+      <article class="record">
+        <div class="record-main">
+          <div>
+            <div class="record-title">${escapeHtml(item.name)} <span class="pill status">${escapeHtml(item.formulaDate)}</span></div>
+            <div class="record-meta">${linkedSession ? `关联回访：${escapeHtml(linkedSession.visitDate)}` : "未关联回访记录"}</div>
+            <div class="record-meta"><strong>药味组成：</strong>${escapeHtml(item.herbs || "未填写")}</div>
+            <div class="record-meta"><strong>每味用量：</strong>${escapeHtml(item.dosages || "未填写")}</div>
+            <div class="record-meta"><strong>煎服/冲泡：</strong>${escapeHtml(item.preparation || "未填写")}</div>
+            <div class="record-meta"><strong>使用周期：</strong>${escapeHtml(item.period || "未填写")}</div>
+            <div class="record-meta"><strong>加减说明：</strong>${escapeHtml(item.modifications || "无")}</div>
+            <div class="record-meta"><strong>禁忌/注意：</strong>${escapeHtml(item.cautions || "无")}</div>
+            <div class="record-meta"><strong>备注：</strong>${escapeHtml(item.notes || "无")}</div>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("") || `<div class="empty-state">暂无茶方记录。</div>`;
 }
 
 function addIngredientRow(name = "", grams = "") {
@@ -516,6 +566,37 @@ function bindEvents() {
     await refreshData();
     renderClientDetail();
     toast("回访记录已保存");
+  });
+
+  $("#clientFormulaForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const client = clientById(state.selectedClientId);
+    if (!client) {
+      toast("请先选择客户");
+      return;
+    }
+    const payload = {
+      id: uid("client_formula"),
+      clientId: client.id,
+      clientSessionId: $("#clientFormulaSession").value,
+      formulaDate: $("#clientFormulaDate").value,
+      name: $("#clientFormulaName").value.trim(),
+      herbs: $("#clientFormulaHerbs").value.trim(),
+      dosages: $("#clientFormulaDosages").value.trim(),
+      preparation: $("#clientFormulaPreparation").value.trim(),
+      period: $("#clientFormulaPeriod").value.trim(),
+      modifications: $("#clientFormulaModifications").value.trim(),
+      cautions: $("#clientFormulaCautions").value.trim(),
+      notes: $("#clientFormulaNotes").value.trim(),
+    };
+    await api("/api/client-formulas", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    resetClientFormulaForm();
+    await refreshData();
+    renderClientDetail();
+    toast("茶方记录已保存");
   });
 
   $("#formulaForm").addEventListener("submit", async (event) => {

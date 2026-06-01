@@ -146,26 +146,50 @@
                 <h3>历史回访记录</h3>
               </div>
               <div class="records-list" id="sessionList"></div>
+              <div class="section-heading followup-heading">
+                <h3>历史茶方</h3>
+              </div>
+              <div class="records-list" id="clientFormulaList"></div>
             </section>
-            <form class="editor-panel" id="sessionForm">
-              <div class="section-heading">
-                <h3>新增回访记录</h3>
-              </div>
-              <label>日期<input id="sessionDate" type="date" required /></label>
-              <label>主诉变化<textarea id="sessionComplaintChange" rows="3" placeholder="例如：睡眠改善，疲劳减轻"></textarea></label>
-              <div class="two-col">
-                <label>睡眠<input id="sessionSleep" placeholder="例如：入睡较快，夜醒1次" /></label>
-                <label>饮食<input id="sessionDiet" placeholder="例如：食欲正常，少油腻" /></label>
-              </div>
-              <div class="two-col">
-                <label>大便<input id="sessionStool" placeholder="例如：每日1次，成形" /></label>
-                <label>舌象<input id="sessionTongue" placeholder="例如：舌淡红，苔薄白" /></label>
-              </div>
-              <label>脉象<input id="sessionPulse" placeholder="例如：脉细" /></label>
-              <label>调理建议<textarea id="sessionAdvice" rows="4" placeholder="例如：继续原方案，晚间减少茶饮量"></textarea></label>
-              <label>备注<textarea id="sessionNotes" rows="3" placeholder="其他需要记录的事项"></textarea></label>
-              <button class="primary-button" type="submit">保存回访记录</button>
-            </form>
+            <div class="stacked-forms">
+              <form class="editor-panel" id="sessionForm">
+                <div class="section-heading">
+                  <h3>新增回访记录</h3>
+                </div>
+                <label>日期<input id="sessionDate" type="date" required /></label>
+                <label>主诉变化<textarea id="sessionComplaintChange" rows="3" placeholder="例如：睡眠改善，疲劳减轻"></textarea></label>
+                <div class="two-col">
+                  <label>睡眠<input id="sessionSleep" placeholder="例如：入睡较快，夜醒1次" /></label>
+                  <label>饮食<input id="sessionDiet" placeholder="例如：食欲正常，少油腻" /></label>
+                </div>
+                <div class="two-col">
+                  <label>大便<input id="sessionStool" placeholder="例如：每日1次，成形" /></label>
+                  <label>舌象<input id="sessionTongue" placeholder="例如：舌淡红，苔薄白" /></label>
+                </div>
+                <label>脉象<input id="sessionPulse" placeholder="例如：脉细" /></label>
+                <label>调理建议<textarea id="sessionAdvice" rows="4" placeholder="例如：继续原方案，晚间减少茶饮量"></textarea></label>
+                <label>备注<textarea id="sessionNotes" rows="3" placeholder="其他需要记录的事项"></textarea></label>
+                <button class="primary-button" type="submit">保存回访记录</button>
+              </form>
+              <form class="editor-panel" id="clientFormulaForm">
+                <div class="section-heading">
+                  <h3>新增茶方/调理方案</h3>
+                </div>
+                <div class="two-col">
+                  <label>日期<input id="clientFormulaDate" type="date" required /></label>
+                  <label>关联回访<select id="clientFormulaSession"></select></label>
+                </div>
+                <label>方名<input id="clientFormulaName" required placeholder="例如：健脾安神代茶饮" /></label>
+                <label>药味组成<textarea id="clientFormulaHerbs" rows="3" placeholder="例如：茯苓、陈皮、酸枣仁"></textarea></label>
+                <label>每味用量<textarea id="clientFormulaDosages" rows="3" placeholder="例如：茯苓3g，陈皮2g，酸枣仁5g"></textarea></label>
+                <label>煎服/冲泡方法<textarea id="clientFormulaPreparation" rows="3" placeholder="例如：每日1包，沸水冲泡10分钟"></textarea></label>
+                <label>使用周期<input id="clientFormulaPeriod" placeholder="例如：7天" /></label>
+                <label>加减说明<textarea id="clientFormulaModifications" rows="3" placeholder="例如：口干明显加麦冬"></textarea></label>
+                <label>禁忌/注意事项<textarea id="clientFormulaCautions" rows="3" placeholder="例如：孕期慎用，服药期间咨询医师"></textarea></label>
+                <label>备注<textarea id="clientFormulaNotes" rows="3" placeholder="其他需要记录的事项"></textarea></label>
+                <button class="primary-button" type="submit">保存茶方</button>
+              </form>
+            </div>
           </div>
         </section>
 
