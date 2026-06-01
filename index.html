@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TCM Tea Studio | 中药代茶饮配方管理</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="login-screen" id="loginScreen">
+      <form class="login-panel" id="loginForm">
+        <div class="brand login-brand">
+          <div class="brand-mark">茶</div>
+          <div>
+            <h1>TCM Tea Studio</h1>
+            <p>登录配方管理系统</p>
+          </div>
+        </div>
+        <label>账号<input id="loginUsername" autocomplete="username" required placeholder="管理员账号" /></label>
+        <label>密码<input id="loginPassword" autocomplete="current-password" required type="password" placeholder="管理员密码" /></label>
+        <button class="primary-button" type="submit">登录</button>
+        <p class="auth-message" id="loginMessage"></p>
+      </form>
+    </section>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">茶</div>
+          <div>
+            <h1>TCM Tea Studio</h1>
+            <p>代茶饮配方工作台</p>
+          </div>
+        </div>
+        <nav class="nav-tabs" aria-label="主导航">
+          <button class="nav-tab active" data-view="dashboard" type="button">总览</button>
+          <button class="nav-tab" data-view="clients" type="button">顾客档案</button>
+          <button class="nav-tab" data-view="formulas" type="button">茶包方案</button>
+          <button class="nav-tab" data-view="export" type="button">导出配方单</button>
+        </nav>
+        <div class="side-panel">
+          <span class="panel-label">今日待处理</span>
+          <strong id="todayCount">0</strong>
+          <small>份方案需要复核或交付</small>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">配方管理系统</p>
+            <h2 id="viewTitle">总览</h2>
+          </div>
+          <div class="topbar-actions">
+            <span class="user-chip" id="currentUser">未登录</span>
+            <button class="ghost-button" id="seedDemo" type="button">载入示例</button>
+            <button class="primary-button" id="quickFormula" type="button">新建方案</button>
+            <button class="ghost-button" id="logoutButton" type="button">退出</button>
+          </div>
+        </header>
+
+        <section class="view active" id="dashboardView">
+          <div class="metrics-grid">
+            <article class="metric-card">
+              <span>顾客数</span>
+              <strong id="clientMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>方案数</span>
+              <strong id="formulaMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>常用体质</span>
+              <strong id="dominantMetric">暂无</strong>
+            </article>
+            <article class="metric-card">
+              <span>总茶包</span>
+              <strong id="bagsMetric">0</strong>
+            </article>
+          </div>
+          <div class="dashboard-grid">
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>最近方案</h3>
+                <button class="text-button" data-go="formulas" type="button">查看全部</button>
+              </div>
+              <div class="compact-list" id="recentFormulas"></div>
+            </section>
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>体质分布</h3>
+              </div>
+              <div class="constitution-bars" id="constitutionBars"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="clientsView">
+          <div class="split-layout">
+            <form class="editor-panel" id="clientForm">
+              <div class="section-heading">
+                <h3>顾客档案</h3>
+                <button class="ghost-button small" id="resetClient" type="button">清空</button>
+              </div>
+              <input type="hidden" id="clientId" />
+              <label>姓名<input id="clientName" required placeholder="例如：林女士" /></label>
+              <label>手机号<input id="clientPhone" placeholder="可选" /></label>
+              <label>年龄<input id="clientAge" type="number" min="1" max="120" placeholder="例如：36" /></label>
+              <label>体质分类
+                <select id="clientConstitution" required>
+                  <option value="">请选择</option>
+                </select>
+              </label>
+              <label>主诉/调理方向<textarea id="clientConcern" rows="4" placeholder="例如：易疲劳、睡眠浅、口干"></textarea></label>
+              <label>禁忌/备注<textarea id="clientNotes" rows="3" placeholder="例如：孕期、过敏、用药情况"></textarea></label>
+              <button class="primary-button" type="submit">保存档案</button>
+            </form>
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>档案列表</h3>
+                <input class="search-input" id="clientSearch" placeholder="搜索姓名、手机号、体质" />
+              </div>
+              <div class="records-list" id="clientList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="formulasView">
+          <div class="split-layout formula-layout">
+            <form class="editor-panel" id="formulaForm">
+              <div class="section-heading">
+                <h3>茶包方案生成</h3>
+                <button class="ghost-button small" id="resetFormula" type="button">清空</button>
+              </div>
+              <input type="hidden" id="formulaId" />
+              <label>选择顾客<select id="formulaClient" required></select></label>
+              <label>方案名称<input id="formulaName" required placeholder="例如：健脾祛湿代茶饮" /></label>
+              <div class="two-col">
+                <label>每日包数<input id="dailyBags" type="number" min="1" value="2" required /></label>
+                <label>调理天数<input id="days" type="number" min="1" value="7" required /></label>
+              </div>
+              <div class="two-col">
+                <label>单包水量 ml<input id="waterMl" type="number" min="100" value="350" /></label>
+                <label>状态<select id="formulaStatus"><option>待复核</option><option>可制作</option><option>已交付</option></select></label>
+              </div>
+              <label>用法<textarea id="usage" rows="3">每日代茶温饮，饭后或两餐间饮用。</textarea></label>
+              <label>注意事项<textarea id="cautions" rows="3" placeholder="根据顾客情况填写禁忌、停用条件等"></textarea></label>
+
+              <div class="ingredient-header">
+                <h4>药食同源/中药材</h4>
+                <button class="ghost-button small" id="addIngredient" type="button">添加</button>
+              </div>
+              <div id="ingredients"></div>
+              <div class="calc-strip">
+                <span>单包 <strong id="singleWeight">0g</strong></span>
+                <span>总包数 <strong id="totalBags">0</strong></span>
+                <span>总克重 <strong id="totalWeight">0g</strong></span>
+              </div>
+              <button class="primary-button" type="submit">保存方案</button>
+            </form>
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>方案列表</h3>
+                <input class="search-input" id="formulaSearch" placeholder="搜索顾客、方案、状态" />
+              </div>
+              <div class="records-list" id="formulaList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="exportView">
+          <div class="export-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>选择配方单</h3>
+                <select id="exportFormula"></select>
+              </div>
+              <div class="export-actions">
+                <button class="primary-button" id="printFormula" type="button">打印 / 另存 PDF</button>
+                <button class="ghost-button" id="copyFormula" type="button">复制文本</button>
+              </div>
+              <p class="fine-print">建议正式交付前由执业中医师或合规负责人复核。系统仅用于门店配方管理，不替代诊疗。</p>
+            </section>
+            <article class="formula-sheet" id="formulaSheet"></article>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
