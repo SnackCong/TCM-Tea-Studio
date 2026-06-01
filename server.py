@@ -83,6 +83,23 @@ def init_db():
                 updated_at INTEGER NOT NULL,
                 FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS client_sessions (
+                id TEXT PRIMARY KEY,
+                client_id TEXT NOT NULL,
+                visit_date TEXT NOT NULL,
+                complaint_change TEXT,
+                sleep TEXT,
+                diet TEXT,
+                stool TEXT,
+                tongue TEXT,
+                pulse TEXT,
+                advice TEXT,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            );
             """
         )
         ensure_column(conn, "clients", "gender", "TEXT")
@@ -135,6 +152,8 @@ def row_to_client(row):
         "constitution": row["constitution"],
         "concern": row["concern"] or "",
         "notes": row["notes"] or "",
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
     }
 
 
@@ -150,6 +169,24 @@ def row_to_formula(row):
         "usage": row["usage"] or "",
         "cautions": row["cautions"] or "",
         "ingredients": json.loads(row["ingredients_json"] or "[]"),
+    }
+
+
+def row_to_client_session(row):
+    return {
+        "id": row["id"],
+        "clientId": row["client_id"],
+        "visitDate": row["visit_date"],
+        "complaintChange": row["complaint_change"] or "",
+        "sleep": row["sleep"] or "",
+        "diet": row["diet"] or "",
+        "stool": row["stool"] or "",
+        "tongue": row["tongue"] or "",
+        "pulse": row["pulse"] or "",
+        "advice": row["advice"] or "",
+        "notes": row["notes"] or "",
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
     }
 
 
@@ -250,6 +287,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.create_client()
             if path.startswith("/api/clients/") and method == "PUT":
                 return self.update_client(unquote(path.removeprefix("/api/clients/")))
+            if path == "/api/client-sessions" and method == "POST":
+                return self.create_client_session()
             if path == "/api/formulas" and method == "POST":
                 return self.create_formula()
             if path.startswith("/api/formulas/") and method == "PUT":
@@ -303,7 +342,11 @@ class Handler(SimpleHTTPRequestHandler):
         with connect() as conn:
             clients = [row_to_client(row) for row in conn.execute("SELECT * FROM clients ORDER BY updated_at DESC")]
             formulas = [row_to_formula(row) for row in conn.execute("SELECT * FROM formulas ORDER BY updated_at DESC")]
-        response_json(self, {"clients": clients, "formulas": formulas})
+            client_sessions = [
+                row_to_client_session(row)
+                for row in conn.execute("SELECT * FROM client_sessions ORDER BY visit_date DESC, created_at DESC")
+            ]
+        response_json(self, {"clients": clients, "formulas": formulas, "clientSessions": client_sessions})
 
     def create_client(self):
         payload = read_json(self)
@@ -352,6 +395,34 @@ class Handler(SimpleHTTPRequestHandler):
                 ),
             )
         response_json(self, {"ok": True})
+
+    def create_client_session(self):
+        payload = read_json(self)
+        now = int(time.time())
+        with connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO client_sessions
+                (id, client_id, visit_date, complaint_change, sleep, diet, stool, tongue, pulse, advice, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.get("id") or f"visit_{secrets.token_hex(8)}",
+                    payload["clientId"],
+                    payload["visitDate"],
+                    payload.get("complaintChange", ""),
+                    payload.get("sleep", ""),
+                    payload.get("diet", ""),
+                    payload.get("stool", ""),
+                    payload.get("tongue", ""),
+                    payload.get("pulse", ""),
+                    payload.get("advice", ""),
+                    payload.get("notes", ""),
+                    now,
+                    now,
+                ),
+            )
+        response_json(self, {"ok": True}, HTTPStatus.CREATED)
 
     def create_formula(self):
         payload = read_json(self)

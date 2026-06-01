@@ -134,6 +134,41 @@
           </div>
         </section>
 
+        <section class="view" id="clientDetailView">
+          <div class="split-layout formula-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>客户详情</h3>
+                <button class="ghost-button small" id="backToClients" type="button">返回列表</button>
+              </div>
+              <div id="clientDetailPanel"></div>
+              <div class="section-heading followup-heading">
+                <h3>历史回访记录</h3>
+              </div>
+              <div class="records-list" id="sessionList"></div>
+            </section>
+            <form class="editor-panel" id="sessionForm">
+              <div class="section-heading">
+                <h3>新增回访记录</h3>
+              </div>
+              <label>日期<input id="sessionDate" type="date" required /></label>
+              <label>主诉变化<textarea id="sessionComplaintChange" rows="3" placeholder="例如：睡眠改善，疲劳减轻"></textarea></label>
+              <div class="two-col">
+                <label>睡眠<input id="sessionSleep" placeholder="例如：入睡较快，夜醒1次" /></label>
+                <label>饮食<input id="sessionDiet" placeholder="例如：食欲正常，少油腻" /></label>
+              </div>
+              <div class="two-col">
+                <label>大便<input id="sessionStool" placeholder="例如：每日1次，成形" /></label>
+                <label>舌象<input id="sessionTongue" placeholder="例如：舌淡红，苔薄白" /></label>
+              </div>
+              <label>脉象<input id="sessionPulse" placeholder="例如：脉细" /></label>
+              <label>调理建议<textarea id="sessionAdvice" rows="4" placeholder="例如：继续原方案，晚间减少茶饮量"></textarea></label>
+              <label>备注<textarea id="sessionNotes" rows="3" placeholder="其他需要记录的事项"></textarea></label>
+              <button class="primary-button" type="submit">保存回访记录</button>
+            </form>
+          </div>
+        </section>
+
         <section class="view" id="formulasView">
           <div class="split-layout formula-layout">
             <form class="editor-panel" id="formulaForm">

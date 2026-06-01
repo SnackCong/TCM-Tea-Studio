@@ -418,6 +418,32 @@ textarea {
   flex-wrap: wrap;
 }
 
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+
+.detail-header h3 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.detail-grid {
+  display: grid;
+  gap: 10px;
+  color: #43504b;
+  line-height: 1.6;
+}
+
+.followup-heading {
+  margin-top: 24px;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
