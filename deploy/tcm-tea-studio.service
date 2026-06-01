@@ -1,0 +1,16 @@
+[Unit]
+Description=TCM Tea Studio
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tcm-tea-studio
+Environment=TCM_HOST=0.0.0.0
+Environment=TCM_PORT=8080
+Environment=TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3
+ExecStart=/usr/bin/python3 /opt/tcm-tea-studio/server.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
