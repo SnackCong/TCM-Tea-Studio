@@ -27,7 +27,7 @@ Static assets such as `/`, `/index.html`, `/app.js`, and `/styles.css` are publi
 - Static business UI code is public because this is a single-page app served before login.
 - The current login protection is API-centered, not route-centered.
 - There is one admin account model; no per-user roles or audit log yet.
-- Session cookies are `HttpOnly` and `SameSite=Lax`, but they are not currently marked `Secure` because local HTTP and origin details have been kept simple. Once HTTPS-only access is enforced end to end, mark the session cookie as `Secure`.
+- Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in the default production configuration. For local HTTP-only development, set `TCM_COOKIE_SECURE=0`.
 - Current Cloudflare origin certificate is self-signed. It works with Cloudflare Full, but Full strict should use Cloudflare Origin CA or Let's Encrypt.
 
 ## Minimal Security Hardening Plan
@@ -37,8 +37,7 @@ Recommended next minimal changes, without redesigning the auth system:
 1. Keep all customer, follow-up, tea formula, and export data behind authenticated `/api/*` endpoints.
 2. Add a `/api/bootstrap` or `/api/session`-gated app initialization path that renders business views only after a valid session.
 3. Add a server-side protected HTML route for the app shell, or split unauthenticated login HTML from authenticated app HTML.
-4. Mark the session cookie `Secure` after confirming all production access is HTTPS.
-5. Add a small audit trail table for business mutations: customer create/update, follow-up create, tea formula create.
+4. Add a small audit trail table for business mutations: customer create/update, follow-up create, tea formula create.
 
 ## Test Data
 
@@ -60,6 +59,28 @@ Tea formula records:
 - `client_formula_verify_20260601_b`
 
 These are already marked by their IDs and notes with `verify`, `测试`, or `验证`. They were intentionally left in place for traceability.
+
+Latest deletion preview from `2026-06-01`:
+
+Customers:
+
+- `client_verify_20260601`: `测试客户`, phone `13900001111`, notes `部署验证记录`
+- `client_visit_verify_20260601_b`: `回访隔离客户`, phone `13900002222`, notes `回访隔离验证客户`
+
+Follow-up records:
+
+- `visit_verify_20260601_a`: client `client_verify_20260601`, notes `客户A回访记录`
+- `visit_verify_20260601_b`: client `client_visit_verify_20260601_b`, notes `客户B回访记录`
+
+Tea formula records:
+
+- `client_formula_verify_20260601_a`: client `client_verify_20260601`, formula `测试安神茶方A`
+- `client_formula_verify_20260601_b`: client `client_visit_verify_20260601_b`, formula `测试益气茶方B`
+
+Deletion status:
+
+- Pending explicit final confirmation.
+- No test data has been deleted yet.
 
 ## Safe Test Data Deletion Plan
 

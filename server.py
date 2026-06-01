@@ -19,6 +19,7 @@ DATA_DIR = ROOT / "data"
 DB_PATH = Path(os.environ.get("TCM_DB_PATH", DATA_DIR / "tcm_tea_studio.sqlite3"))
 SESSION_COOKIE = "tcm_session"
 SESSION_TTL_SECONDS = 60 * 60 * 12
+COOKIE_SECURE = os.environ.get("TCM_COOKIE_SECURE", "1") != "0"
 
 
 def connect():
@@ -247,9 +248,10 @@ def response_json(handler, data, status=HTTPStatus.OK, headers=None):
 
 
 def cookie_header(token, expires=False):
+    secure = "; Secure" if COOKIE_SECURE else ""
     if expires:
-        return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
-    return f"{SESSION_COOKIE}={token}; Path=/; Max-Age={SESSION_TTL_SECONDS}; HttpOnly; SameSite=Lax"
+        return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax{secure}"
+    return f"{SESSION_COOKIE}={token}; Path=/; Max-Age={SESSION_TTL_SECONDS}; HttpOnly; SameSite=Lax{secure}"
 
 
 class Handler(SimpleHTTPRequestHandler):

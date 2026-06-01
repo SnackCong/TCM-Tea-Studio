@@ -2,6 +2,8 @@
 
 ## 2026-06-01
 
+- Added `Secure` to the session cookie by default while preserving `HttpOnly` and `SameSite=Lax`.
+- Documented post-launch test data deletion plan and current authentication risk notes.
 - Added customer-linked tea formula/treatment plan records via `client_formulas`.
 - Added optional association between a tea formula and a follow-up record.
 - Added tea formula fields for date, formula name, herbs, dosages, preparation method, period, modifications, cautions, and notes.
