@@ -223,6 +223,44 @@ List backups:
 ls -lh /root/tcm-tea-studio-backups/sqlite
 ```
 
+Restore drill without touching production:
+
+```bash
+LATEST_BACKUP=$(ls -t /root/tcm-tea-studio-backups/sqlite/tcm_tea_studio_*.sqlite3 | head -n 1)
+mkdir -p /root/tcm-tea-studio-backups/restore-drills
+RESTORE_TEST=/root/tcm-tea-studio-backups/restore-drills/restore-test-$(date +%Y%m%d-%H%M%S).sqlite3
+cp "$LATEST_BACKUP" "$RESTORE_TEST"
+
+python3 - <<PY
+import sqlite3
+path = "$RESTORE_TEST"
+con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+print("opened=ok")
+print("integrity=" + con.execute("PRAGMA integrity_check").fetchone()[0])
+print("schema:")
+for name, sql in con.execute("select name, sql from sqlite_master where type='table' order by name"):
+    print(f"- {name}: {sql}")
+print("counts:")
+for (name,) in con.execute("select name from sqlite_master where type='table' order by name"):
+    count = con.execute(f"select count(*) from {name}").fetchone()[0]
+    print(f"- {name}: {count}")
+con.close()
+PY
+```
+
+Restore drill result from `2026-06-01`:
+
+- Source backup: `/root/tcm-tea-studio-backups/sqlite/tcm_tea_studio_20260601-085425.sqlite3`
+- Temporary restore file: `/root/tcm-tea-studio-backups/restore-drills/restore-test-20260601-085425.sqlite3`
+- Open test: `opened=ok`
+- Integrity check: `integrity=ok`
+- Table counts:
+  - `clients`: 0
+  - `formulas`: 0
+  - `sessions`: 1
+  - `users`: 1
+- Production database was not replaced: `/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3`
+
 Restore procedure outline:
 
 1. Stop writes to the application during a maintenance window.
