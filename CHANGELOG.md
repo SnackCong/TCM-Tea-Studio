@@ -2,6 +2,10 @@
 
 ## 2026-06-02
 
+- Turned the customer detail page into a customer case center with a combined timeline for follow-up records and tea formula records.
+- Added client todo records with reminder date, completion status, and notes using a safe `client_todos` table migration.
+- Added copy-as-new support for historical client tea formulas.
+- Added a formula library call-in flow that reuses existing tea package formulas as draft client tea formulas.
 - Deleted the previously listed deployment verification test customers, follow-up records, and tea formula records after explicit confirmation.
 - Created a pre-deletion SQLite backup and verified `PRAGMA integrity_check=ok` after deletion.
 - Verified anonymous API access still returns `401` and authenticated business data API access remains normal.

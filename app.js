@@ -5,6 +5,7 @@ const state = {
   formulas: [],
   clientSessions: [],
   clientFormulas: [],
+  clientTodos: [],
   selectedClientId: "",
   currentView: "dashboard",
   user: null,
@@ -66,6 +67,7 @@ async function refreshData() {
   state.formulas = data.formulas || [];
   state.clientSessions = data.clientSessions || [];
   state.clientFormulas = data.clientFormulas || [];
+  state.clientTodos = data.clientTodos || [];
   renderAll();
 }
 
@@ -74,7 +76,7 @@ function setView(view) {
   $$(".view").forEach((el) => el.classList.remove("active"));
   $(`#${view}View`).classList.add("active");
   $$(".nav-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === view));
-  $("#viewTitle").textContent = { dashboard: "总览", clients: "顾客档案", clientDetail: "客户详情", formulas: "茶包方案", export: "导出配方单" }[view];
+  $("#viewTitle").textContent = { dashboard: "总览", clients: "顾客档案", clientDetail: "客户病例中心", formulas: "茶包方案", export: "导出配方单" }[view];
   if (view === "export") renderFormulaSheet();
   if (view === "clientDetail") renderClientDetail();
 }
@@ -100,6 +102,14 @@ function formatTimestamp(value) {
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function describeFormulaIngredients(formula) {
+  return (formula.ingredients || []).map((item) => item.name).filter(Boolean).join("、");
+}
+
+function describeFormulaDosages(formula) {
+  return (formula.ingredients || []).map((item) => `${item.name}${item.grams}g`).filter((item) => item.length > 1).join("，");
 }
 
 function fillConstitutionSelects() {
@@ -215,6 +225,7 @@ function renderExportOptions(selectedId) {
 
 function renderAll() {
   renderClientOptions();
+  renderFormulaLibraryOptions();
   renderClients();
   renderClientDetail();
   renderFormulas();
@@ -234,6 +245,11 @@ function resetClientFormulaForm() {
   renderClientFormulaSessionOptions();
 }
 
+function resetTodoForm() {
+  $("#todoForm").reset();
+  $("#todoId").value = "";
+}
+
 function sessionsForClient(clientId) {
   return state.clientSessions
     .filter((item) => item.clientId === clientId)
@@ -246,10 +262,20 @@ function formulasForClient(clientId) {
     .sort((a, b) => `${b.formulaDate}-${b.createdAt}`.localeCompare(`${a.formulaDate}-${a.createdAt}`));
 }
 
+function todosForClient(clientId) {
+  return state.clientTodos
+    .filter((item) => item.clientId === clientId)
+    .sort((a, b) => {
+      if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
+      return `${a.reminderDate || "9999-12-31"}-${a.createdAt}`.localeCompare(`${b.reminderDate || "9999-12-31"}-${b.createdAt}`);
+    });
+}
+
 function viewClient(id) {
   state.selectedClientId = id;
   resetSessionForm();
   resetClientFormulaForm();
+  resetTodoForm();
   setView("clientDetail");
 }
 
@@ -262,17 +288,64 @@ function renderClientFormulaSessionOptions() {
   )).join("");
 }
 
+function renderFormulaLibraryOptions() {
+  const select = $("#formulaLibrarySelect");
+  if (!select) return;
+  select.innerHTML = `<option value="">选择既有茶包方案</option>` + state.formulas.map((formula) => {
+    const client = clientById(formula.clientId);
+    return `<option value="${escapeHtml(formula.id)}">${escapeHtml(formula.name)} · ${escapeHtml(client?.name || "未关联顾客")}</option>`;
+  }).join("");
+}
+
+function fillClientFormulaForm(item, options = {}) {
+  $("#clientFormulaDate").value = options.keepDate ? item.formulaDate : todayISO();
+  $("#clientFormulaSession").value = item.clientSessionId || "";
+  $("#clientFormulaName").value = options.copyName ? `${item.name}（复制）` : item.name;
+  $("#clientFormulaHerbs").value = item.herbs || "";
+  $("#clientFormulaDosages").value = item.dosages || "";
+  $("#clientFormulaPreparation").value = item.preparation || "";
+  $("#clientFormulaPeriod").value = item.period || "";
+  $("#clientFormulaModifications").value = item.modifications || "";
+  $("#clientFormulaCautions").value = item.cautions || "";
+  $("#clientFormulaNotes").value = item.notes || "";
+}
+
+function applyFormulaLibrary() {
+  const formula = state.formulas.find((item) => item.id === $("#formulaLibrarySelect").value);
+  if (!formula) {
+    toast("请选择要调用的配方");
+    return;
+  }
+  fillClientFormulaForm({
+    formulaDate: todayISO(),
+    clientSessionId: "",
+    name: formula.name,
+    herbs: describeFormulaIngredients(formula),
+    dosages: describeFormulaDosages(formula),
+    preparation: formula.usage || `每日${formula.dailyBags || 1}包，温水冲泡${formula.waterMl || 350}ml。`,
+    period: `${formula.days || ""}天`.trim(),
+    modifications: "",
+    cautions: formula.cautions || "",
+    notes: "由配方库调用生成，可按本次情况加减。",
+  });
+  toast("已从配方库带入茶方草稿");
+}
+
 function renderClientDetail() {
   const panel = $("#clientDetailPanel");
+  const timelineList = $("#clientTimeline");
   const list = $("#sessionList");
   const formulaList = $("#clientFormulaList");
-  if (!panel || !list || !formulaList) return;
+  const todoList = $("#clientTodoList");
+  if (!panel || !timelineList || !list || !formulaList || !todoList) return;
 
   const client = clientById(state.selectedClientId);
   if (!client) {
     panel.innerHTML = `<div class="empty-state">请先从顾客档案列表选择一位客户。</div>`;
+    timelineList.innerHTML = `<div class="empty-state">暂无时间线记录。</div>`;
     list.innerHTML = `<div class="empty-state">暂无回访记录。</div>`;
     formulaList.innerHTML = `<div class="empty-state">暂无茶方记录。</div>`;
+    todoList.innerHTML = `<div class="empty-state">暂无待办事项。</div>`;
     renderClientFormulaSessionOptions();
     return;
   }
@@ -293,7 +366,40 @@ function renderClientDetail() {
   `;
 
   const sessions = sessionsForClient(client.id);
+  const clientFormulas = formulasForClient(client.id);
+  const todos = todosForClient(client.id);
   renderClientFormulaSessionOptions();
+
+  const timelineItems = [
+    ...sessions.map((item) => ({ type: "回访", date: item.visitDate, createdAt: item.createdAt, item })),
+    ...clientFormulas.map((item) => ({ type: "茶方", date: item.formulaDate, createdAt: item.createdAt, item })),
+  ].sort((a, b) => `${b.date}-${b.createdAt}`.localeCompare(`${a.date}-${a.createdAt}`));
+
+  timelineList.innerHTML = timelineItems.map(({ type, date, item }) => {
+    if (type === "回访") {
+      return `
+        <article class="timeline-item">
+          <div class="timeline-date">${escapeHtml(date)}</div>
+          <div class="timeline-card">
+            <div class="record-title">回访 <span class="pill">就诊记录</span></div>
+            <div class="record-meta"><strong>主诉变化：</strong>${escapeHtml(item.complaintChange || "未填写")}</div>
+            <div class="record-meta"><strong>调理建议：</strong>${escapeHtml(item.advice || "未填写")}</div>
+          </div>
+        </article>
+      `;
+    }
+    return `
+      <article class="timeline-item">
+        <div class="timeline-date">${escapeHtml(date)}</div>
+        <div class="timeline-card">
+          <div class="record-title">${escapeHtml(item.name)} <span class="pill status">茶方</span></div>
+          <div class="record-meta"><strong>药味：</strong>${escapeHtml(item.herbs || "未填写")}</div>
+          <div class="record-meta"><strong>加减：</strong>${escapeHtml(item.modifications || "无")}</div>
+        </div>
+      </article>
+    `;
+  }).join("") || `<div class="empty-state">暂无时间线记录。</div>`;
+
   list.innerHTML = sessions.map((item) => `
     <article class="record">
       <div class="record-main">
@@ -309,7 +415,6 @@ function renderClientDetail() {
     </article>
   `).join("") || `<div class="empty-state">暂无回访记录。</div>`;
 
-  const clientFormulas = formulasForClient(client.id);
   formulaList.innerHTML = clientFormulas.map((item) => {
     const linkedSession = item.clientSessionId ? state.clientSessions.find((session) => session.id === item.clientSessionId) : null;
     return `
@@ -326,10 +431,28 @@ function renderClientDetail() {
             <div class="record-meta"><strong>禁忌/注意：</strong>${escapeHtml(item.cautions || "无")}</div>
             <div class="record-meta"><strong>备注：</strong>${escapeHtml(item.notes || "无")}</div>
           </div>
+          <div class="record-actions">
+            <button class="ghost-button small" data-copy-client-formula="${escapeHtml(item.id)}" type="button">复制为新茶方</button>
+          </div>
         </div>
       </article>
     `;
   }).join("") || `<div class="empty-state">暂无茶方记录。</div>`;
+
+  todoList.innerHTML = todos.map((item) => `
+    <article class="record ${item.isDone ? "is-done" : ""}">
+      <div class="record-main">
+        <div>
+          <div class="record-title">${escapeHtml(item.content)} <span class="pill ${item.isDone ? "" : "status"}">${item.isDone ? "已完成" : "待处理"}</span></div>
+          <div class="record-meta">提醒日期：${escapeHtml(item.reminderDate || "未设置")}</div>
+          <div class="record-meta"><strong>备注：</strong>${escapeHtml(item.notes || "无")}</div>
+        </div>
+        <div class="record-actions">
+          <button class="ghost-button small" data-toggle-todo="${escapeHtml(item.id)}" type="button">${item.isDone ? "标记未完成" : "完成"}</button>
+        </div>
+      </div>
+    </article>
+  `).join("") || `<div class="empty-state">暂无待办事项。</div>`;
 }
 
 function addIngredientRow(name = "", grams = "") {
@@ -407,6 +530,26 @@ function planForClient(id) {
   setView("formulas");
 }
 
+function copyClientFormula(id) {
+  const formula = state.clientFormulas.find((item) => item.id === id && item.clientId === state.selectedClientId);
+  if (!formula) return;
+  fillClientFormulaForm(formula, { copyName: true });
+  $("#clientFormulaNotes").value = [formula.notes, "由历史茶方复制生成，请按本次情况加减。"].filter(Boolean).join("\n");
+  toast("已复制为新茶方草稿");
+}
+
+async function toggleTodo(id) {
+  const todo = state.clientTodos.find((item) => item.id === id && item.clientId === state.selectedClientId);
+  if (!todo) return;
+  await api(`/api/client-todos/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ ...todo, isDone: !todo.isDone }),
+  });
+  await refreshData();
+  renderClientDetail();
+  toast(todo.isDone ? "待办已恢复为未完成" : "待办已完成");
+}
+
 function renderFormulaSheet() {
   const formula = state.formulas.find((item) => item.id === $("#exportFormula").value) || state.formulas[0];
   const sheet = $("#formulaSheet");
@@ -472,6 +615,9 @@ async function logout() {
   state.user = null;
   state.clients = [];
   state.formulas = [];
+  state.clientSessions = [];
+  state.clientFormulas = [];
+  state.clientTodos = [];
   showLogin("已退出登录");
 }
 
@@ -488,6 +634,7 @@ function bindEvents() {
   $("#backToClients").addEventListener("click", () => setView("clients"));
   $("#resetFormula").addEventListener("click", resetFormulaForm);
   $("#addIngredient").addEventListener("click", () => addIngredientRow());
+  $("#applyFormulaLibrary").addEventListener("click", applyFormulaLibrary);
   ["dailyBags", "days"].forEach((id) => $(`#${id}`).addEventListener("input", updateFormulaCalc));
   $("#clientSearch").addEventListener("input", renderClients);
   $("#formulaSearch").addEventListener("input", renderFormulas);
@@ -599,6 +746,33 @@ function bindEvents() {
     toast("茶方记录已保存");
   });
 
+  $("#todoForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const client = clientById(state.selectedClientId);
+    if (!client) {
+      toast("请先选择客户");
+      return;
+    }
+    const id = $("#todoId").value || uid("client_todo");
+    const existing = state.clientTodos.find((item) => item.id === id);
+    const payload = {
+      id,
+      clientId: client.id,
+      content: $("#todoContent").value.trim(),
+      reminderDate: $("#todoReminderDate").value,
+      isDone: existing?.isDone || false,
+      notes: $("#todoNotes").value.trim(),
+    };
+    await api(existing ? `/api/client-todos/${encodeURIComponent(id)}` : "/api/client-todos", {
+      method: existing ? "PUT" : "POST",
+      body: JSON.stringify(payload),
+    });
+    resetTodoForm();
+    await refreshData();
+    renderClientDetail();
+    toast("待办事项已保存");
+  });
+
   $("#formulaForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const ingredients = readIngredients();
@@ -634,10 +808,14 @@ function bindEvents() {
     const planClientId = event.target.dataset.planClient;
     const editFormulaId = event.target.dataset.editFormula;
     const exportFormulaId = event.target.dataset.exportFormula;
+    const copyClientFormulaId = event.target.dataset.copyClientFormula;
+    const toggleTodoId = event.target.dataset.toggleTodo;
     if (editClientId) editClient(editClientId);
     if (viewClientId) viewClient(viewClientId);
     if (planClientId) planForClient(planClientId);
     if (editFormulaId) editFormula(editFormulaId);
+    if (copyClientFormulaId) copyClientFormula(copyClientFormulaId);
+    if (toggleTodoId) toggleTodo(toggleTodoId);
     if (exportFormulaId) {
       renderExportOptions(exportFormulaId);
       setView("export");

@@ -138,10 +138,14 @@
           <div class="split-layout formula-layout">
             <section class="work-section">
               <div class="section-heading">
-                <h3>客户详情</h3>
+                <h3>客户病例中心</h3>
                 <button class="ghost-button small" id="backToClients" type="button">返回列表</button>
               </div>
               <div id="clientDetailPanel"></div>
+              <div class="section-heading followup-heading">
+                <h3>时间线</h3>
+              </div>
+              <div class="timeline-list" id="clientTimeline"></div>
               <div class="section-heading followup-heading">
                 <h3>历史回访记录</h3>
               </div>
@@ -150,6 +154,10 @@
                 <h3>历史茶方</h3>
               </div>
               <div class="records-list" id="clientFormulaList"></div>
+              <div class="section-heading followup-heading">
+                <h3>待办事项</h3>
+              </div>
+              <div class="records-list" id="clientTodoList"></div>
             </section>
             <div class="stacked-forms">
               <form class="editor-panel" id="sessionForm">
@@ -175,6 +183,10 @@
                 <div class="section-heading">
                   <h3>新增茶方/调理方案</h3>
                 </div>
+                <div class="library-callout">
+                  <label>从配方库调用<select id="formulaLibrarySelect"></select></label>
+                  <button class="ghost-button small" id="applyFormulaLibrary" type="button">调用</button>
+                </div>
                 <div class="two-col">
                   <label>日期<input id="clientFormulaDate" type="date" required /></label>
                   <label>关联回访<select id="clientFormulaSession"></select></label>
@@ -188,6 +200,16 @@
                 <label>禁忌/注意事项<textarea id="clientFormulaCautions" rows="3" placeholder="例如：孕期慎用，服药期间咨询医师"></textarea></label>
                 <label>备注<textarea id="clientFormulaNotes" rows="3" placeholder="其他需要记录的事项"></textarea></label>
                 <button class="primary-button" type="submit">保存茶方</button>
+              </form>
+              <form class="editor-panel" id="todoForm">
+                <div class="section-heading">
+                  <h3>新增待办事项</h3>
+                </div>
+                <input type="hidden" id="todoId" />
+                <label>待办内容<input id="todoContent" required placeholder="例如：三天后电话回访睡眠情况" /></label>
+                <label>提醒日期<input id="todoReminderDate" type="date" /></label>
+                <label>备注<textarea id="todoNotes" rows="3" placeholder="例如：若腹胀未缓解，复核用量"></textarea></label>
+                <button class="primary-button" type="submit">保存待办</button>
               </form>
             </div>
           </div>

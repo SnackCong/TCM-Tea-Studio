@@ -385,7 +385,8 @@ textarea {
 
 .records-list,
 .compact-list,
-.constitution-bars {
+.constitution-bars,
+.timeline-list {
   display: grid;
   gap: 10px;
 }
@@ -423,6 +424,40 @@ textarea {
   flex-wrap: wrap;
 }
 
+.record.is-done {
+  opacity: 0.72;
+}
+
+.record.is-done .record-title {
+  text-decoration: line-through;
+}
+
+.timeline-list {
+  position: relative;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 94px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.timeline-date {
+  color: var(--sage-dark);
+  font-size: 13px;
+  font-weight: 800;
+  padding-top: 14px;
+}
+
+.timeline-card {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--sage);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfa;
+}
+
 .detail-header {
   display: flex;
   justify-content: space-between;
@@ -447,6 +482,17 @@ textarea {
 
 .followup-heading {
   margin-top: 24px;
+}
+
+.library-callout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f2f5f2;
 }
 
 .pill {
@@ -632,9 +678,18 @@ td {
 
   .nav-tabs,
   .two-col,
+  .library-callout,
   .calc-strip,
   .sheet-grid {
     grid-template-columns: 1fr;
+  }
+
+  .timeline-item {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-date {
+    padding-top: 0;
   }
 
   .metrics-grid {

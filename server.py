@@ -120,6 +120,18 @@ def init_db():
                 FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
                 FOREIGN KEY (client_session_id) REFERENCES client_sessions(id) ON DELETE SET NULL
             );
+
+            CREATE TABLE IF NOT EXISTS client_todos (
+                id TEXT PRIMARY KEY,
+                client_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                reminder_date TEXT,
+                is_done INTEGER NOT NULL DEFAULT 0,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            );
             """
         )
         ensure_column(conn, "clients", "gender", "TEXT")
@@ -229,6 +241,19 @@ def row_to_client_formula(row):
     }
 
 
+def row_to_client_todo(row):
+    return {
+        "id": row["id"],
+        "clientId": row["client_id"],
+        "content": row["content"],
+        "reminderDate": row["reminder_date"] or "",
+        "isDone": bool(row["is_done"]),
+        "notes": row["notes"] or "",
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+
+
 def read_json(handler):
     length = int(handler.headers.get("Content-Length", "0") or "0")
     if length <= 0:
@@ -331,6 +356,10 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.create_client_session()
             if path == "/api/client-formulas" and method == "POST":
                 return self.create_client_formula()
+            if path == "/api/client-todos" and method == "POST":
+                return self.create_client_todo()
+            if path.startswith("/api/client-todos/") and method == "PUT":
+                return self.update_client_todo(unquote(path.removeprefix("/api/client-todos/")))
             if path == "/api/formulas" and method == "POST":
                 return self.create_formula()
             if path.startswith("/api/formulas/") and method == "PUT":
@@ -392,9 +421,24 @@ class Handler(SimpleHTTPRequestHandler):
                 row_to_client_formula(row)
                 for row in conn.execute("SELECT * FROM client_formulas ORDER BY formula_date DESC, created_at DESC")
             ]
+            client_todos = [
+                row_to_client_todo(row)
+                for row in conn.execute(
+                    """
+                    SELECT * FROM client_todos
+                    ORDER BY is_done ASC, reminder_date IS NULL ASC, reminder_date ASC, created_at DESC
+                    """
+                )
+            ]
         response_json(
             self,
-            {"clients": clients, "formulas": formulas, "clientSessions": client_sessions, "clientFormulas": client_formulas},
+            {
+                "clients": clients,
+                "formulas": formulas,
+                "clientSessions": client_sessions,
+                "clientFormulas": client_formulas,
+                "clientTodos": client_todos,
+            },
         )
 
     def create_client(self):
@@ -530,6 +574,50 @@ class Handler(SimpleHTTPRequestHandler):
                 ),
             )
         response_json(self, {"ok": True}, HTTPStatus.CREATED)
+
+    def create_client_todo(self):
+        payload = read_json(self)
+        now = int(time.time())
+        with connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO client_todos
+                (id, client_id, content, reminder_date, is_done, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.get("id") or f"client_todo_{secrets.token_hex(8)}",
+                    payload["clientId"],
+                    payload["content"],
+                    payload.get("reminderDate", ""),
+                    1 if payload.get("isDone") else 0,
+                    payload.get("notes", ""),
+                    now,
+                    now,
+                ),
+            )
+        response_json(self, {"ok": True}, HTTPStatus.CREATED)
+
+    def update_client_todo(self, todo_id):
+        payload = read_json(self)
+        now = int(time.time())
+        with connect() as conn:
+            conn.execute(
+                """
+                UPDATE client_todos
+                SET content = ?, reminder_date = ?, is_done = ?, notes = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    payload["content"],
+                    payload.get("reminderDate", ""),
+                    1 if payload.get("isDone") else 0,
+                    payload.get("notes", ""),
+                    now,
+                    todo_id,
+                ),
+            )
+        response_json(self, {"ok": True})
 
     def update_formula(self, formula_id):
         payload = read_json(self)
