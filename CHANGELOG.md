@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-06-02
+
+- Deleted the previously listed deployment verification test customers, follow-up records, and tea formula records after explicit confirmation.
+- Created a pre-deletion SQLite backup and verified `PRAGMA integrity_check=ok` after deletion.
+- Verified anonymous API access still returns `401` and authenticated business data API access remains normal.
+
 ## 2026-06-01
 
 - Added `Secure` to the session cookie by default while preserving `HttpOnly` and `SameSite=Lax`.

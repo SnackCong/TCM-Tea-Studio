@@ -1,6 +1,6 @@
 # Security Notes
 
-Last checked: 2026-06-01
+Last checked: 2026-06-02
 
 ## Current Auth Status
 
@@ -58,7 +58,7 @@ Tea formula records:
 - `client_formula_verify_20260601_a`
 - `client_formula_verify_20260601_b`
 
-These are already marked by their IDs and notes with `verify`, `测试`, or `验证`. They were intentionally left in place for traceability.
+These were marked by their IDs and notes with `verify`, `测试`, or `验证`.
 
 Latest deletion preview from `2026-06-01`:
 
@@ -79,12 +79,16 @@ Tea formula records:
 
 Deletion status:
 
-- Pending explicit final confirmation.
-- No test data has been deleted yet.
+- Deleted on `2026-06-02` after explicit confirmation.
+- Pre-deletion backup: `/root/tcm-tea-studio-backups/sqlite/tcm_tea_studio_20260602-100955.sqlite3`.
+- Deleted rows: `2` from `client_formulas`, `2` from `client_sessions`, and `2` from `clients`.
+- Post-deletion `PRAGMA integrity_check`: `ok`.
+- Post-deletion table counts: `clients=0`, `client_sessions=0`, `client_formulas=0`.
+- Business API verification after deletion: authenticated `GET /api/data` returned valid empty arrays for `clients`, `clientSessions`, and `clientFormulas`; anonymous `GET /api/data` still returned `401`.
 
 ## Safe Test Data Deletion Plan
 
-Do not run this without explicit confirmation.
+This plan was executed on `2026-06-02` after explicit confirmation. Keep it as the audit trail for what was removed.
 
 Before deletion:
 
