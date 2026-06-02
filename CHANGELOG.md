@@ -2,6 +2,8 @@
 
 ## 2026-06-02
 
+- Added `scripts/import_formula_templates.py` to bulk import reusable formula templates from JSON.
+- Added a sample import file at `examples/formula_templates.sample.json` and documented skip/update behavior for same-name templates.
 - Split the global formula library into a dedicated `formula_templates` table and moved customer case formula import to the new template source.
 - Kept the old `formulas` table as a legacy tea package/export table instead of using the hidden `formula_library_client` compatibility path.
 - Added safe migration logic that copies legacy formula library records into `formula_templates` without deleting legacy data.

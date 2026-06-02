@@ -111,6 +111,32 @@ sudo systemctl restart tcm-tea-studio
 sqlite3 /opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 ".backup '/opt/tcm-tea-studio/data/backup-$(date +%F).sqlite3'"
 ```
 
+## 批量导入配方模板
+
+配方模板保存到 `formula_templates`，客户病例中的实际茶方仍保存到 `client_formulas`。
+
+示例文件：
+
+```bash
+examples/formula_templates.sample.json
+```
+
+导入示例：
+
+```bash
+TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 \
+python3 scripts/import_formula_templates.py examples/formula_templates.sample.json
+```
+
+默认同名方剂会跳过，不重复导入。需要更新同名模板时添加 `--update`：
+
+```bash
+TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 \
+python3 scripts/import_formula_templates.py examples/formula_templates.sample.json --update
+```
+
+支持字段：`name`、`category`、`pattern`、`target_people`、`ingredients`、`default_dosage`、`usage`、`modifications`、`contraindications`、`taste_notes`、`cost_notes`、`notes`。其中 `name` 必填，缺失会跳过并输出原因。
+
 ## 合规提醒
 
 本系统用于代茶饮配方管理和单据生成，不替代医疗诊断。正式使用前应结合当地监管要求、执业资质、隐私保护和门店合规流程复核。

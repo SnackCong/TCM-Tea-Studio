@@ -1,0 +1,30 @@
+[
+  {
+    "name": "健脾祛湿代茶饮",
+    "category": "健脾祛湿",
+    "pattern": "脾虚湿困",
+    "target_people": "饭后腹胀、困倦乏力、舌苔偏腻人群",
+    "ingredients": "茯苓、陈皮、炒薏苡仁、荷叶",
+    "default_dosage": "茯苓3g，陈皮2g，炒薏苡仁5g，荷叶1.5g",
+    "usage": "每日1包，沸水冲泡10分钟，饭后温饮，可续水至味淡。",
+    "modifications": "腹胀明显加砂仁；口干明显减荷叶。",
+    "contraindications": "孕期、哺乳期及正在服药者需先咨询专业人员。",
+    "taste_notes": "陈皮香明显，整体偏清淡。",
+    "cost_notes": "炒薏苡仁成本较低，适合常规调理包。",
+    "notes": "示例模板，可按门店规范复核后使用。"
+  },
+  {
+    "name": "安神助眠代茶饮",
+    "category": "安神助眠",
+    "pattern": "心脾两虚",
+    "target_people": "睡眠浅、多梦、易疲劳人群",
+    "ingredients": "茯苓、酸枣仁、百合、陈皮",
+    "default_dosage": "茯苓3g，酸枣仁5g，百合3g，陈皮1.5g",
+    "usage": "每日1包，晚饭后温饮，睡前2小时内不建议大量饮用。",
+    "modifications": "口干明显加麦冬；胃胀明显减百合。",
+    "contraindications": "孕期慎用；感冒发热期间暂停。",
+    "taste_notes": "微酸，带淡淡百合甜香。",
+    "cost_notes": "酸枣仁成本较高，制作前复核库存。",
+    "notes": "示例模板，正式使用前应由专业人员复核。"
+  }
+]

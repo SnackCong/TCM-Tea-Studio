@@ -279,6 +279,25 @@ Formula library separation:
 - The legacy hidden client id `formula_library_client` may still exist in older databases for compatibility, but new global template workflows do not depend on it.
 - Legacy formula-library-like records from `formulas` are copied into `formula_templates` by the safe migration with `ON CONFLICT DO NOTHING`; old rows are not deleted automatically.
 
+Formula template import:
+
+```bash
+cd /opt/tcm-tea-studio
+TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 \
+python3 scripts/import_formula_templates.py examples/formula_templates.sample.json
+```
+
+Import behavior:
+
+- Input can be a JSON array or an object with a `templates` array.
+- `name` is required; records without `name` are skipped with a reason.
+- Same-name templates are skipped by default.
+- Add `--update` to update same-name templates.
+- JSON field mapping:
+  - `target_people` -> `formula_templates.audience`
+  - `ingredients` -> `formula_templates.composition`
+  - `contraindications` -> `formula_templates.cautions`
+
 Verification data cleanup:
 
 - Records with ids or notes containing `formula_library_verify_20260602` were created during deployment verification.
