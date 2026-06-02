@@ -2,6 +2,9 @@
 
 ## 2026-06-02
 
+- Split the global formula library into a dedicated `formula_templates` table and moved customer case formula import to the new template source.
+- Kept the old `formulas` table as a legacy tea package/export table instead of using the hidden `formula_library_client` compatibility path.
+- Added safe migration logic that copies legacy formula library records into `formula_templates` without deleting legacy data.
 - Enhanced the formula library with category, pattern, audience, composition, default dosage, modification rules, taste notes, cost notes, and internal notes.
 - Added formula library management fields to the existing formula page while keeping old formula records compatible through safe SQLite column migrations.
 - Updated customer case center formula import so library formulas can populate composition, dosage, usage, modification rules, cautions, and notes.

@@ -20,7 +20,7 @@ DB_PATH = Path(os.environ.get("TCM_DB_PATH", DATA_DIR / "tcm_tea_studio.sqlite3"
 SESSION_COOKIE = "tcm_session"
 SESSION_TTL_SECONDS = 60 * 60 * 12
 COOKIE_SECURE = os.environ.get("TCM_COOKIE_SECURE", "1") != "0"
-FORMULA_LIBRARY_CLIENT_ID = "formula_library_client"
+LEGACY_FORMULA_LIBRARY_CLIENT_ID = "formula_library_client"
 
 
 def connect():
@@ -133,6 +133,24 @@ def init_db():
                 updated_at INTEGER NOT NULL,
                 FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS formula_templates (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT,
+                pattern TEXT,
+                audience TEXT,
+                composition TEXT,
+                default_dosage TEXT,
+                usage TEXT,
+                modifications TEXT,
+                cautions TEXT,
+                taste_notes TEXT,
+                cost_notes TEXT,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
             """
         )
         ensure_column(conn, "clients", "gender", "TEXT")
@@ -145,25 +163,32 @@ def init_db():
         ensure_column(conn, "formulas", "taste_notes", "TEXT")
         ensure_column(conn, "formulas", "cost_notes", "TEXT")
         ensure_column(conn, "formulas", "notes", "TEXT")
-        now = int(time.time())
         conn.execute(
             """
-            INSERT INTO clients (id, name, gender, phone, age, constitution, concern, notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO formula_templates
+            (id, name, category, pattern, audience, composition, default_dosage, usage,
+             modifications, cautions, taste_notes, cost_notes, notes, created_at, updated_at)
+            SELECT
+                id,
+                name,
+                COALESCE(category, ''),
+                COALESCE(pattern, ''),
+                COALESCE(audience, ''),
+                COALESCE(composition, ''),
+                COALESCE(default_dosage, ''),
+                COALESCE(usage, ''),
+                COALESCE(modifications, ''),
+                COALESCE(cautions, ''),
+                COALESCE(taste_notes, ''),
+                COALESCE(cost_notes, ''),
+                COALESCE(notes, ''),
+                created_at,
+                updated_at
+            FROM formulas
+            WHERE client_id = ? OR id LIKE 'formula_library_verify_%' OR COALESCE(notes, '') LIKE '%formula_library_verify_20260602%'
             ON CONFLICT(id) DO NOTHING
             """,
-            (
-                FORMULA_LIBRARY_CLIENT_ID,
-                "配方库",
-                "",
-                "",
-                "",
-                "系统",
-                "系统隐藏客户，用于兼容旧版 formulas.client_id 外键。",
-                "system_formula_library",
-                now,
-                now,
-            ),
+            (LEGACY_FORMULA_LIBRARY_CLIENT_ID,),
         )
 
 
@@ -228,7 +253,8 @@ def row_to_formula(row):
     return {
         "id": row["id"],
         "clientId": row["client_id"],
-        "isLibrary": row["client_id"] == FORMULA_LIBRARY_CLIENT_ID,
+        "isLibrary": row["client_id"] == LEGACY_FORMULA_LIBRARY_CLIENT_ID,
+        "isLegacy": True,
         "name": row["name"],
         "category": row["category"] or "",
         "pattern": row["pattern"] or "",
@@ -246,6 +272,26 @@ def row_to_formula(row):
         "costNotes": row["cost_notes"] or "",
         "notes": row["notes"] or "",
         "ingredients": ingredients,
+    }
+
+
+def row_to_formula_template(row):
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "category": row["category"] or "",
+        "pattern": row["pattern"] or "",
+        "audience": row["audience"] or "",
+        "composition": row["composition"] or "",
+        "defaultDosage": row["default_dosage"] or "",
+        "usage": row["usage"] or "",
+        "modifications": row["modifications"] or "",
+        "cautions": row["cautions"] or "",
+        "tasteNotes": row["taste_notes"] or "",
+        "costNotes": row["cost_notes"] or "",
+        "notes": row["notes"] or "",
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
     }
 
 
@@ -405,6 +451,10 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.create_client_todo()
             if path.startswith("/api/client-todos/") and method == "PUT":
                 return self.update_client_todo(unquote(path.removeprefix("/api/client-todos/")))
+            if path == "/api/formula-templates" and method == "POST":
+                return self.create_formula_template()
+            if path.startswith("/api/formula-templates/") and method == "PUT":
+                return self.update_formula_template(unquote(path.removeprefix("/api/formula-templates/")))
             if path == "/api/formulas" and method == "POST":
                 return self.create_formula()
             if path.startswith("/api/formulas/") and method == "PUT":
@@ -460,10 +510,14 @@ class Handler(SimpleHTTPRequestHandler):
                 row_to_client(row)
                 for row in conn.execute(
                     "SELECT * FROM clients WHERE id != ? ORDER BY updated_at DESC",
-                    (FORMULA_LIBRARY_CLIENT_ID,),
+                    (LEGACY_FORMULA_LIBRARY_CLIENT_ID,),
                 )
             ]
             formulas = [row_to_formula(row) for row in conn.execute("SELECT * FROM formulas ORDER BY updated_at DESC")]
+            formula_templates = [
+                row_to_formula_template(row)
+                for row in conn.execute("SELECT * FROM formula_templates ORDER BY updated_at DESC")
+            ]
             client_sessions = [
                 row_to_client_session(row)
                 for row in conn.execute("SELECT * FROM client_sessions ORDER BY visit_date DESC, created_at DESC")
@@ -486,6 +540,7 @@ class Handler(SimpleHTTPRequestHandler):
             {
                 "clients": clients,
                 "formulas": formulas,
+                "formulaTemplates": formula_templates,
                 "clientSessions": client_sessions,
                 "clientFormulas": client_formulas,
                 "clientTodos": client_todos,
@@ -572,7 +627,10 @@ class Handler(SimpleHTTPRequestHandler):
         payload = read_json(self)
         now = int(time.time())
         ingredients = payload.get("ingredients", [])
-        client_id = payload.get("clientId") or FORMULA_LIBRARY_CLIENT_ID
+        client_id = payload.get("clientId")
+        if not client_id:
+            response_json(self, {"error": "旧茶包方案必须关联客户；通用配方请使用 formula_templates。"}, HTTPStatus.BAD_REQUEST)
+            return
         with connect() as conn:
             conn.execute(
                 """
@@ -683,10 +741,75 @@ class Handler(SimpleHTTPRequestHandler):
             )
         response_json(self, {"ok": True})
 
+    def create_formula_template(self):
+        payload = read_json(self)
+        now = int(time.time())
+        with connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO formula_templates
+                (id, name, category, pattern, audience, composition, default_dosage, usage,
+                 modifications, cautions, taste_notes, cost_notes, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.get("id") or f"formula_template_{secrets.token_hex(8)}",
+                    payload["name"],
+                    payload.get("category", ""),
+                    payload.get("pattern", ""),
+                    payload.get("audience", ""),
+                    payload.get("composition", ""),
+                    payload.get("defaultDosage", ""),
+                    payload.get("usage", ""),
+                    payload.get("modifications", ""),
+                    payload.get("cautions", ""),
+                    payload.get("tasteNotes", ""),
+                    payload.get("costNotes", ""),
+                    payload.get("notes", ""),
+                    now,
+                    now,
+                ),
+            )
+        response_json(self, {"ok": True}, HTTPStatus.CREATED)
+
+    def update_formula_template(self, template_id):
+        payload = read_json(self)
+        now = int(time.time())
+        with connect() as conn:
+            conn.execute(
+                """
+                UPDATE formula_templates
+                SET name = ?, category = ?, pattern = ?, audience = ?, composition = ?,
+                    default_dosage = ?, usage = ?, modifications = ?, cautions = ?,
+                    taste_notes = ?, cost_notes = ?, notes = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    payload["name"],
+                    payload.get("category", ""),
+                    payload.get("pattern", ""),
+                    payload.get("audience", ""),
+                    payload.get("composition", ""),
+                    payload.get("defaultDosage", ""),
+                    payload.get("usage", ""),
+                    payload.get("modifications", ""),
+                    payload.get("cautions", ""),
+                    payload.get("tasteNotes", ""),
+                    payload.get("costNotes", ""),
+                    payload.get("notes", ""),
+                    now,
+                    template_id,
+                ),
+            )
+        response_json(self, {"ok": True})
+
     def update_formula(self, formula_id):
         payload = read_json(self)
         now = int(time.time())
-        client_id = payload.get("clientId") or FORMULA_LIBRARY_CLIENT_ID
+        client_id = payload.get("clientId")
+        if not client_id:
+            response_json(self, {"error": "旧茶包方案必须关联客户；通用配方请使用 formula_templates。"}, HTTPStatus.BAD_REQUEST)
+            return
         with connect() as conn:
             conn.execute(
                 """

@@ -3,6 +3,7 @@ const constitutions = ["平和质", "气虚质", "阳虚质", "阴虚质", "痰�
 const state = {
   clients: [],
   formulas: [],
+  formulaTemplates: [],
   clientSessions: [],
   clientFormulas: [],
   clientTodos: [],
@@ -65,6 +66,7 @@ async function refreshData() {
   const data = await api("/api/data");
   state.clients = data.clients || [];
   state.formulas = data.formulas || [];
+  state.formulaTemplates = data.formulaTemplates || [];
   state.clientSessions = data.clientSessions || [];
   state.clientFormulas = data.clientFormulas || [];
   state.clientTodos = data.clientTodos || [];
@@ -164,8 +166,7 @@ function renderClients() {
 
 function renderFormulas() {
   const term = $("#formulaSearch").value.trim().toLowerCase();
-  const formulas = state.formulas.filter((formula) => {
-    const client = clientById(formula.clientId);
+  const templates = state.formulaTemplates.filter((formula) => {
     return [
       formula.name,
       formula.category,
@@ -176,38 +177,31 @@ function renderFormulas() {
       formula.modifications,
       formula.cautions,
       formula.notes,
-      formula.status,
-      client?.name,
-      client?.constitution,
     ].join(" ").toLowerCase().includes(term);
   });
-  $("#formulaList").innerHTML = formulas.map((formula) => {
-    const client = clientById(formula.clientId);
-    const totals = formulaTotals(formula);
+  $("#formulaList").innerHTML = templates.map((formula) => {
     return `
       <article class="record">
         <div class="record-main">
           <div>
             <div class="record-title">${escapeHtml(formula.name)} <span class="pill status">${escapeHtml(formula.category || "未分类")}</span></div>
             <div class="record-meta">${escapeHtml(formula.pattern || "证型未填")} · ${escapeHtml(formula.audience || "人群未填")}</div>
-            <div class="record-meta"><strong>组成：</strong>${escapeHtml(formula.composition || describeFormulaIngredients(formula) || "未填写")}</div>
-            <div class="record-meta"><strong>默认剂量：</strong>${escapeHtml(formula.defaultDosage || describeFormulaDosages(formula) || "未填写")}</div>
-            <div class="record-meta">${escapeHtml(client?.name || "配方库通用")} · ${escapeHtml(formula.status)}</div>
-            <div class="record-meta">${totals.totalBags} 包 · 单包 ${totals.singleWeight}g · 总量 ${totals.totalWeight}g</div>
+            <div class="record-meta"><strong>组成：</strong>${escapeHtml(formula.composition || "未填写")}</div>
+            <div class="record-meta"><strong>默认剂量：</strong>${escapeHtml(formula.defaultDosage || "未填写")}</div>
+            <div class="record-meta"><strong>加减规则：</strong>${escapeHtml(formula.modifications || "未填写")}</div>
           </div>
           <div class="record-actions">
             <button class="ghost-button small" data-edit-formula="${escapeHtml(formula.id)}" type="button">编辑</button>
-            <button class="ghost-button small" data-export-formula="${escapeHtml(formula.id)}" type="button">导出</button>
           </div>
         </div>
       </article>
     `;
-  }).join("") || `<div class="empty-state">暂无茶包方案。</div>`;
+  }).join("") || `<div class="empty-state">暂无配方模板。</div>`;
 }
 
 function renderDashboard() {
   $("#clientMetric").textContent = state.clients.length;
-  $("#formulaMetric").textContent = state.formulas.length;
+  $("#formulaMetric").textContent = state.formulaTemplates.length;
   $("#bagsMetric").textContent = state.formulas.reduce((sum, formula) => sum + formulaTotals(formula).totalBags, 0);
   $("#todayCount").textContent = state.formulas.filter((formula) => formula.status !== "已交付").length;
 
@@ -308,9 +302,8 @@ function renderClientFormulaSessionOptions() {
 function renderFormulaLibraryOptions() {
   const select = $("#formulaLibrarySelect");
   if (!select) return;
-  select.innerHTML = `<option value="">选择配方库方剂</option>` + state.formulas.map((formula) => {
-    const client = clientById(formula.clientId);
-    return `<option value="${escapeHtml(formula.id)}">${escapeHtml(formula.name)} · ${escapeHtml(formula.category || client?.name || "通用")}</option>`;
+  select.innerHTML = `<option value="">选择配方库方剂</option>` + state.formulaTemplates.map((formula) => {
+    return `<option value="${escapeHtml(formula.id)}">${escapeHtml(formula.name)} · ${escapeHtml(formula.category || "通用")}</option>`;
   }).join("");
 }
 
@@ -328,7 +321,7 @@ function fillClientFormulaForm(item, options = {}) {
 }
 
 function applyFormulaLibrary() {
-  const formula = state.formulas.find((item) => item.id === $("#formulaLibrarySelect").value);
+  const formula = state.formulaTemplates.find((item) => item.id === $("#formulaLibrarySelect").value);
   if (!formula) {
     toast("请选择要调用的配方");
     return;
@@ -337,10 +330,10 @@ function applyFormulaLibrary() {
     formulaDate: todayISO(),
     clientSessionId: "",
     name: formula.name,
-    herbs: formula.composition || describeFormulaIngredients(formula),
-    dosages: formula.defaultDosage || describeFormulaDosages(formula),
-    preparation: formula.usage || `每日${formula.dailyBags || 1}包，温水冲泡${formula.waterMl || 350}ml。`,
-    period: `${formula.days || ""}天`.trim(),
+    herbs: formula.composition || "",
+    dosages: formula.defaultDosage || "",
+    preparation: formula.usage || "",
+    period: "",
     modifications: formula.modifications || "",
     cautions: formula.cautions || "",
     notes: [
@@ -528,20 +521,20 @@ function editClient(id) {
 }
 
 function editFormula(id) {
-  const formula = state.formulas.find((item) => item.id === id);
+  const formula = state.formulaTemplates.find((item) => item.id === id);
   if (!formula) return;
   $("#formulaId").value = formula.id;
-  $("#formulaClient").value = formula.isLibrary ? "" : formula.clientId;
+  $("#formulaClient").value = "";
   $("#formulaName").value = formula.name;
   $("#formulaCategory").value = formula.category || "";
   $("#formulaPattern").value = formula.pattern || "";
   $("#formulaAudience").value = formula.audience || "";
   $("#formulaComposition").value = formula.composition || "";
   $("#formulaDefaultDosage").value = formula.defaultDosage || "";
-  $("#dailyBags").value = formula.dailyBags;
-  $("#days").value = formula.days;
-  $("#waterMl").value = formula.waterMl;
-  $("#formulaStatus").value = formula.status;
+  $("#dailyBags").value = 1;
+  $("#days").value = 1;
+  $("#waterMl").value = 350;
+  $("#formulaStatus").value = "待复核";
   $("#usage").value = formula.usage || "";
   $("#formulaModifications").value = formula.modifications || "";
   $("#cautions").value = formula.cautions || "";
@@ -549,7 +542,6 @@ function editFormula(id) {
   $("#formulaCostNotes").value = formula.costNotes || "";
   $("#formulaNotes").value = formula.notes || "";
   $("#ingredients").innerHTML = "";
-  formula.ingredients.forEach((item) => addIngredientRow(item.name, item.grams));
   updateFormulaCalc();
   setView("formulas");
 }
@@ -647,6 +639,7 @@ async function logout() {
   state.user = null;
   state.clients = [];
   state.formulas = [];
+  state.formulaTemplates = [];
   state.clientSessions = [];
   state.clientFormulas = [];
   state.clientTodos = [];
@@ -807,40 +800,33 @@ function bindEvents() {
 
   $("#formulaForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const ingredients = readIngredients();
-    if (!ingredients.length && !$("#formulaComposition").value.trim()) {
-      toast("请填写组成或至少添加一味材料");
+    if (!$("#formulaComposition").value.trim()) {
+      toast("请填写组成");
       return;
     }
-    const id = $("#formulaId").value || uid("formula");
+    const id = $("#formulaId").value || uid("formula_template");
     const payload = {
       id,
-      clientId: $("#formulaClient").value,
       name: $("#formulaName").value.trim(),
       category: $("#formulaCategory").value.trim(),
       pattern: $("#formulaPattern").value.trim(),
       audience: $("#formulaAudience").value.trim(),
       composition: $("#formulaComposition").value.trim(),
       defaultDosage: $("#formulaDefaultDosage").value.trim(),
-      dailyBags: Number($("#dailyBags").value),
-      days: Number($("#days").value),
-      waterMl: Number($("#waterMl").value),
-      status: $("#formulaStatus").value,
       usage: $("#usage").value.trim(),
       modifications: $("#formulaModifications").value.trim(),
       cautions: $("#cautions").value.trim(),
       tasteNotes: $("#formulaTasteNotes").value.trim(),
       costNotes: $("#formulaCostNotes").value.trim(),
       notes: $("#formulaNotes").value.trim(),
-      ingredients,
     };
-    const exists = state.formulas.some((formula) => formula.id === id);
-    await api(exists ? `/api/formulas/${encodeURIComponent(id)}` : "/api/formulas", {
+    const exists = state.formulaTemplates.some((formula) => formula.id === id);
+    await api(exists ? `/api/formula-templates/${encodeURIComponent(id)}` : "/api/formula-templates", {
       method: exists ? "PUT" : "POST",
       body: JSON.stringify(payload),
     });
     await refreshData();
-    toast("茶包方案已保存");
+    toast("配方模板已保存");
   });
 
   document.addEventListener("click", (event) => {

@@ -223,7 +223,11 @@
                 <button class="ghost-button small" id="resetFormula" type="button">清空</button>
               </div>
               <input type="hidden" id="formulaId" />
-              <label>关联顾客<select id="formulaClient"></select></label>
+              <input type="hidden" id="formulaClient" />
+              <input type="hidden" id="dailyBags" value="1" />
+              <input type="hidden" id="days" value="1" />
+              <input type="hidden" id="waterMl" value="350" />
+              <input type="hidden" id="formulaStatus" value="待复核" />
               <label>方名<input id="formulaName" required placeholder="例如：健脾祛湿代茶饮" /></label>
               <div class="two-col">
                 <label>分类<input id="formulaCategory" placeholder="例如：安神助眠、健脾祛湿" /></label>
@@ -232,14 +236,6 @@
               <label>适用人群<input id="formulaAudience" placeholder="例如：睡眠浅、饭后腹胀、久坐湿重人群" /></label>
               <label>组成<textarea id="formulaComposition" rows="3" placeholder="例如：茯苓、酸枣仁、陈皮"></textarea></label>
               <label>默认剂量<textarea id="formulaDefaultDosage" rows="3" placeholder="例如：茯苓3g，酸枣仁5g，陈皮2g"></textarea></label>
-              <div class="two-col">
-                <label>每日包数<input id="dailyBags" type="number" min="1" value="2" required /></label>
-                <label>调理天数<input id="days" type="number" min="1" value="7" required /></label>
-              </div>
-              <div class="two-col">
-                <label>单包水量 ml<input id="waterMl" type="number" min="100" value="350" /></label>
-                <label>状态<select id="formulaStatus"><option>待复核</option><option>可制作</option><option>已交付</option></select></label>
-              </div>
               <label>用法<textarea id="usage" rows="3">每日代茶温饮，饭后或两餐间饮用。</textarea></label>
               <label>加减规则<textarea id="formulaModifications" rows="3" placeholder="例如：口干明显加麦冬；腹胀明显减滋腻药味"></textarea></label>
               <label>注意事项<textarea id="cautions" rows="3" placeholder="根据顾客情况填写禁忌、停用条件等"></textarea></label>
@@ -249,12 +245,12 @@
               </div>
               <label>备注<textarea id="formulaNotes" rows="3" placeholder="内部管理备注"></textarea></label>
 
-              <div class="ingredient-header">
+              <div class="ingredient-header" hidden>
                 <h4>药食同源/中药材</h4>
                 <button class="ghost-button small" id="addIngredient" type="button">添加</button>
               </div>
-              <div id="ingredients"></div>
-              <div class="calc-strip">
+              <div id="ingredients" hidden></div>
+              <div class="calc-strip" hidden>
                 <span>单包 <strong id="singleWeight">0g</strong></span>
                 <span>总包数 <strong id="totalBags">0</strong></span>
                 <span>总克重 <strong id="totalWeight">0g</strong></span>

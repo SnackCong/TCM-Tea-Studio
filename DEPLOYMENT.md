@@ -261,6 +261,30 @@ Restore drill result from `2026-06-01`:
   - `users`: 1
 - Production database was not replaced: `/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3`
 
+## Application Data Model
+
+Current business tables:
+
+- `clients`: real customer profiles.
+- `client_sessions`: follow-up or visit records linked to `clients.id`.
+- `client_formulas`: customer-specific tea formula records linked to `clients.id`; these are actual case records, not global templates.
+- `client_todos`: customer-specific reminders and follow-up tasks linked to `clients.id`.
+- `formula_templates`: global reusable formula templates. The customer case center reads this table when using "从配方库调用".
+- `formulas`: legacy tea package/export table kept for compatibility. It is not the source of the global formula library anymore and should not be used for new reusable templates.
+
+Formula library separation:
+
+- New global templates are saved in `formula_templates`.
+- Customer prescriptions are saved only in `client_formulas`.
+- The legacy hidden client id `formula_library_client` may still exist in older databases for compatibility, but new global template workflows do not depend on it.
+- Legacy formula-library-like records from `formulas` are copied into `formula_templates` by the safe migration with `ON CONFLICT DO NOTHING`; old rows are not deleted automatically.
+
+Verification data cleanup:
+
+- Records with ids or notes containing `formula_library_verify_20260602` were created during deployment verification.
+- Do not delete them without first listing the exact rows and receiving explicit confirmation.
+- After confirmation, delete only matching verification rows from `formula_templates`, `client_formulas`, `formulas`, and `clients`, then run `PRAGMA integrity_check`.
+
 Restore procedure outline:
 
 1. Stop writes to the application during a maintenance window.
