@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-06-03
+
+- Split the unauthenticated login page from the authenticated business app shell to prevent the workspace from flashing before login.
+- Added server-side route checks so unauthenticated business routes redirect to `/login` while authenticated users can enter `/app`.
+
 ## 2026-06-02
 
 - Added `scripts/import_formula_templates.py` to bulk import reusable formula templates from JSON.

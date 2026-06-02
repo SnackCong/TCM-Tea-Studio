@@ -1,6 +1,6 @@
 # Security Notes
 
-Last checked: 2026-06-02
+Last checked: 2026-06-03
 
 ## Current Auth Status
 
@@ -20,12 +20,16 @@ Anonymous API checks returned `401` with:
 {"error": "请先登录"}
 ```
 
-Static assets such as `/`, `/index.html`, `/app.js`, and `/styles.css` are public. The browser UI displays a login overlay and then loads business data only after `/api/session` succeeds. This means unauthenticated visitors can download the app shell, but they cannot retrieve customer, follow-up, formula, or prescription data through the API.
+The login page and business app shell are separated at the server route level:
+
+- Unauthenticated `GET /` and `GET /login` return `login.html`.
+- Unauthenticated business routes such as `/app`, `/clients`, `/formulas`, `/export`, `/index.html`, and `/app.js` redirect to `/login`.
+- Authenticated `GET /` redirects to `/app`, and `/app` serves the business app shell.
+
+This prevents the customer, case-center, formula-library, and export UI shell from flashing before the login check completes. Business data still remains protected by authenticated `/api/*` endpoints.
 
 ## Current Risk Points
 
-- Static business UI code is public because this is a single-page app served before login.
-- The current login protection is API-centered, not route-centered.
 - There is one admin account model; no per-user roles or audit log yet.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in the default production configuration. For local HTTP-only development, set `TCM_COOKIE_SECURE=0`.
 - Current Cloudflare origin certificate is self-signed. It works with Cloudflare Full, but Full strict should use Cloudflare Origin CA or Let's Encrypt.
@@ -35,9 +39,8 @@ Static assets such as `/`, `/index.html`, `/app.js`, and `/styles.css` are publi
 Recommended next minimal changes, without redesigning the auth system:
 
 1. Keep all customer, follow-up, tea formula, and export data behind authenticated `/api/*` endpoints.
-2. Add a `/api/bootstrap` or `/api/session`-gated app initialization path that renders business views only after a valid session.
-3. Add a server-side protected HTML route for the app shell, or split unauthenticated login HTML from authenticated app HTML.
-4. Add a small audit trail table for business mutations: customer create/update, follow-up create, tea formula create.
+2. Keep login HTML separate from the authenticated app shell.
+3. Add a small audit trail table for business mutations: customer create/update, follow-up create, tea formula create.
 
 ## Test Data
 

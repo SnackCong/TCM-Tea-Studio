@@ -52,9 +52,8 @@ function toast(message) {
 }
 
 function showLogin(message = "") {
-  document.body.classList.add("auth-required");
-  $("#loginMessage").textContent = message;
-  $("#loginPassword").value = "";
+  const suffix = message ? `?message=${encodeURIComponent(message)}` : "";
+  window.location.assign(`/login${suffix}`);
 }
 
 function showApp() {
@@ -643,7 +642,7 @@ async function logout() {
   state.clientSessions = [];
   state.clientFormulas = [];
   state.clientTodos = [];
-  showLogin("已退出登录");
+  window.location.assign("/login");
 }
 
 function bindEvents() {
@@ -667,25 +666,10 @@ function bindEvents() {
   $("#printFormula").addEventListener("click", () => window.print());
   $("#copyFormula").addEventListener("click", copyFormulaText);
 
-  $("#loginForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    $("#loginMessage").textContent = "";
-    try {
-      const result = await api("/api/login", {
-        method: "POST",
-        body: JSON.stringify({
-          username: $("#loginUsername").value.trim(),
-          password: $("#loginPassword").value,
-        }),
-      });
-      state.user = result.user;
-      showApp();
-      await refreshData();
-      toast("登录成功");
-    } catch (error) {
-      $("#loginMessage").textContent = error.message;
-    }
-  });
+  const loginForm = $("#loginForm");
+  if (loginForm) {
+    loginForm.addEventListener("submit", (event) => event.preventDefault());
+  }
 
   $("#clientForm").addEventListener("submit", async (event) => {
     event.preventDefault();

@@ -363,6 +363,12 @@ def response_json(handler, data, status=HTTPStatus.OK, headers=None):
     handler.wfile.write(body)
 
 
+def redirect(handler, location):
+    handler.send_response(HTTPStatus.FOUND)
+    handler.send_header("Location", location)
+    handler.end_headers()
+
+
 def cookie_header(token, expires=False):
     secure = "; Secure" if COOKIE_SECURE else ""
     if expires:
@@ -379,8 +385,24 @@ class Handler(SimpleHTTPRequestHandler):
         if path.startswith("/api/"):
             self.handle_api("GET", path)
             return
-        if path == "/":
+        app_routes = {"/app", "/dashboard", "/clients", "/client-detail", "/formulas", "/export", "/index.html"}
+
+        if path in ("/", "/login", "/login.html"):
+            if self.current_user():
+                redirect(self, "/app")
+                return
+            self.path = "/login.html"
+            super().do_GET()
+            return
+
+        if path in app_routes or path.startswith("/app/") or path == "/app.js":
+            if not self.current_user():
+                redirect(self, "/login")
+                return
             self.path = "/index.html"
+            super().do_GET()
+            return
+
         super().do_GET()
 
     def do_POST(self):

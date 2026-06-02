@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 | TCM Tea Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="auth-required">
+    <section class="login-screen" id="loginScreen">
+      <form class="login-panel" id="loginForm">
+        <div class="brand login-brand">
+          <div class="brand-mark">茶</div>
+          <div>
+            <h1>TCM Tea Studio</h1>
+            <p>登录配方管理系统</p>
+          </div>
+        </div>
+        <label>账号<input id="loginUsername" autocomplete="username" required placeholder="管理员账号" /></label>
+        <label>密码<input id="loginPassword" autocomplete="current-password" required type="password" placeholder="管理员密码" /></label>
+        <button class="primary-button" type="submit">登录</button>
+        <p class="auth-message" id="loginMessage"></p>
+      </form>
+    </section>
+    <script src="login.js"></script>
+  </body>
+</html>
