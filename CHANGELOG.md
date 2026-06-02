@@ -6,6 +6,8 @@
 - Added client todo records with reminder date, completion status, and notes using a safe `client_todos` table migration.
 - Added copy-as-new support for historical client tea formulas.
 - Added a formula library call-in flow that reuses existing tea package formulas as draft client tea formulas.
+- Cleaned up the `case_center_verify_20260602` deployment verification data after a pre-deletion SQLite backup.
+- Verified `PRAGMA integrity_check=ok` and confirmed the authenticated business API remains normal after the cleanup.
 - Deleted the previously listed deployment verification test customers, follow-up records, and tea formula records after explicit confirmation.
 - Created a pre-deletion SQLite backup and verified `PRAGMA integrity_check=ok` after deletion.
 - Verified anonymous API access still returns `401` and authenticated business data API access remains normal.
