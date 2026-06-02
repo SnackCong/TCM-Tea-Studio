@@ -76,7 +76,7 @@ function setView(view) {
   $$(".view").forEach((el) => el.classList.remove("active"));
   $(`#${view}View`).classList.add("active");
   $$(".nav-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === view));
-  $("#viewTitle").textContent = { dashboard: "总览", clients: "顾客档案", clientDetail: "客户病例中心", formulas: "茶包方案", export: "导出配方单" }[view];
+  $("#viewTitle").textContent = { dashboard: "总览", clients: "顾客档案", clientDetail: "客户病例中心", formulas: "配方库", export: "导出配方单" }[view];
   if (view === "export") renderFormulaSheet();
   if (view === "clientDetail") renderClientDetail();
 }
@@ -125,6 +125,7 @@ function resetClientForm() {
 function resetFormulaForm() {
   $("#formulaForm").reset();
   $("#formulaId").value = "";
+  $("#formulaClient").value = "";
   $("#dailyBags").value = 2;
   $("#days").value = 7;
   $("#waterMl").value = 350;
@@ -137,7 +138,7 @@ function resetFormulaForm() {
 
 function renderClientOptions() {
   const options = state.clients.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)} · ${escapeHtml(client.constitution || "未分类")}</option>`).join("");
-  $("#formulaClient").innerHTML = options || `<option value="">请先建立顾客档案</option>`;
+  $("#formulaClient").innerHTML = `<option value="">配方库通用</option>` + options;
 }
 
 function renderClients() {
@@ -165,7 +166,20 @@ function renderFormulas() {
   const term = $("#formulaSearch").value.trim().toLowerCase();
   const formulas = state.formulas.filter((formula) => {
     const client = clientById(formula.clientId);
-    return [formula.name, formula.status, client?.name, client?.constitution].join(" ").toLowerCase().includes(term);
+    return [
+      formula.name,
+      formula.category,
+      formula.pattern,
+      formula.audience,
+      formula.composition,
+      formula.defaultDosage,
+      formula.modifications,
+      formula.cautions,
+      formula.notes,
+      formula.status,
+      client?.name,
+      client?.constitution,
+    ].join(" ").toLowerCase().includes(term);
   });
   $("#formulaList").innerHTML = formulas.map((formula) => {
     const client = clientById(formula.clientId);
@@ -174,8 +188,11 @@ function renderFormulas() {
       <article class="record">
         <div class="record-main">
           <div>
-            <div class="record-title">${escapeHtml(formula.name)} <span class="pill status">${escapeHtml(formula.status)}</span></div>
-            <div class="record-meta">${escapeHtml(client?.name || "未关联顾客")} · ${escapeHtml(client?.constitution || "体质未填")}</div>
+            <div class="record-title">${escapeHtml(formula.name)} <span class="pill status">${escapeHtml(formula.category || "未分类")}</span></div>
+            <div class="record-meta">${escapeHtml(formula.pattern || "证型未填")} · ${escapeHtml(formula.audience || "人群未填")}</div>
+            <div class="record-meta"><strong>组成：</strong>${escapeHtml(formula.composition || describeFormulaIngredients(formula) || "未填写")}</div>
+            <div class="record-meta"><strong>默认剂量：</strong>${escapeHtml(formula.defaultDosage || describeFormulaDosages(formula) || "未填写")}</div>
+            <div class="record-meta">${escapeHtml(client?.name || "配方库通用")} · ${escapeHtml(formula.status)}</div>
             <div class="record-meta">${totals.totalBags} 包 · 单包 ${totals.singleWeight}g · 总量 ${totals.totalWeight}g</div>
           </div>
           <div class="record-actions">
@@ -291,9 +308,9 @@ function renderClientFormulaSessionOptions() {
 function renderFormulaLibraryOptions() {
   const select = $("#formulaLibrarySelect");
   if (!select) return;
-  select.innerHTML = `<option value="">选择既有茶包方案</option>` + state.formulas.map((formula) => {
+  select.innerHTML = `<option value="">选择配方库方剂</option>` + state.formulas.map((formula) => {
     const client = clientById(formula.clientId);
-    return `<option value="${escapeHtml(formula.id)}">${escapeHtml(formula.name)} · ${escapeHtml(client?.name || "未关联顾客")}</option>`;
+    return `<option value="${escapeHtml(formula.id)}">${escapeHtml(formula.name)} · ${escapeHtml(formula.category || client?.name || "通用")}</option>`;
   }).join("");
 }
 
@@ -320,13 +337,19 @@ function applyFormulaLibrary() {
     formulaDate: todayISO(),
     clientSessionId: "",
     name: formula.name,
-    herbs: describeFormulaIngredients(formula),
-    dosages: describeFormulaDosages(formula),
+    herbs: formula.composition || describeFormulaIngredients(formula),
+    dosages: formula.defaultDosage || describeFormulaDosages(formula),
     preparation: formula.usage || `每日${formula.dailyBags || 1}包，温水冲泡${formula.waterMl || 350}ml。`,
     period: `${formula.days || ""}天`.trim(),
-    modifications: "",
+    modifications: formula.modifications || "",
     cautions: formula.cautions || "",
-    notes: "由配方库调用生成，可按本次情况加减。",
+    notes: [
+      formula.pattern ? `适用证型：${formula.pattern}` : "",
+      formula.audience ? `适用人群：${formula.audience}` : "",
+      formula.tasteNotes ? `口感：${formula.tasteNotes}` : "",
+      formula.notes ? `配方库备注：${formula.notes}` : "",
+      "由配方库调用生成，可按本次情况加减。",
+    ].filter(Boolean).join("\n"),
   });
   toast("已从配方库带入茶方草稿");
 }
@@ -508,14 +531,23 @@ function editFormula(id) {
   const formula = state.formulas.find((item) => item.id === id);
   if (!formula) return;
   $("#formulaId").value = formula.id;
-  $("#formulaClient").value = formula.clientId;
+  $("#formulaClient").value = formula.isLibrary ? "" : formula.clientId;
   $("#formulaName").value = formula.name;
+  $("#formulaCategory").value = formula.category || "";
+  $("#formulaPattern").value = formula.pattern || "";
+  $("#formulaAudience").value = formula.audience || "";
+  $("#formulaComposition").value = formula.composition || "";
+  $("#formulaDefaultDosage").value = formula.defaultDosage || "";
   $("#dailyBags").value = formula.dailyBags;
   $("#days").value = formula.days;
   $("#waterMl").value = formula.waterMl;
   $("#formulaStatus").value = formula.status;
   $("#usage").value = formula.usage || "";
+  $("#formulaModifications").value = formula.modifications || "";
   $("#cautions").value = formula.cautions || "";
+  $("#formulaTasteNotes").value = formula.tasteNotes || "";
+  $("#formulaCostNotes").value = formula.costNotes || "";
+  $("#formulaNotes").value = formula.notes || "";
   $("#ingredients").innerHTML = "";
   formula.ingredients.forEach((item) => addIngredientRow(item.name, item.grams));
   updateFormulaCalc();
@@ -776,8 +808,8 @@ function bindEvents() {
   $("#formulaForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const ingredients = readIngredients();
-    if (!ingredients.length) {
-      toast("请至少添加一味材料");
+    if (!ingredients.length && !$("#formulaComposition").value.trim()) {
+      toast("请填写组成或至少添加一味材料");
       return;
     }
     const id = $("#formulaId").value || uid("formula");
@@ -785,12 +817,21 @@ function bindEvents() {
       id,
       clientId: $("#formulaClient").value,
       name: $("#formulaName").value.trim(),
+      category: $("#formulaCategory").value.trim(),
+      pattern: $("#formulaPattern").value.trim(),
+      audience: $("#formulaAudience").value.trim(),
+      composition: $("#formulaComposition").value.trim(),
+      defaultDosage: $("#formulaDefaultDosage").value.trim(),
       dailyBags: Number($("#dailyBags").value),
       days: Number($("#days").value),
       waterMl: Number($("#waterMl").value),
       status: $("#formulaStatus").value,
       usage: $("#usage").value.trim(),
+      modifications: $("#formulaModifications").value.trim(),
       cautions: $("#cautions").value.trim(),
+      tasteNotes: $("#formulaTasteNotes").value.trim(),
+      costNotes: $("#formulaCostNotes").value.trim(),
+      notes: $("#formulaNotes").value.trim(),
       ingredients,
     };
     const exists = state.formulas.some((formula) => formula.id === id);

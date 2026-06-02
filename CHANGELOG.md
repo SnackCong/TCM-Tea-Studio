@@ -2,6 +2,9 @@
 
 ## 2026-06-02
 
+- Enhanced the formula library with category, pattern, audience, composition, default dosage, modification rules, taste notes, cost notes, and internal notes.
+- Added formula library management fields to the existing formula page while keeping old formula records compatible through safe SQLite column migrations.
+- Updated customer case center formula import so library formulas can populate composition, dosage, usage, modification rules, cautions, and notes.
 - Turned the customer detail page into a customer case center with a combined timeline for follow-up records and tea formula records.
 - Added client todo records with reminder date, completion status, and notes using a safe `client_todos` table migration.
 - Added copy-as-new support for historical client tea formulas.

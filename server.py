@@ -20,6 +20,7 @@ DB_PATH = Path(os.environ.get("TCM_DB_PATH", DATA_DIR / "tcm_tea_studio.sqlite3"
 SESSION_COOKIE = "tcm_session"
 SESSION_TTL_SECONDS = 60 * 60 * 12
 COOKIE_SECURE = os.environ.get("TCM_COOKIE_SECURE", "1") != "0"
+FORMULA_LIBRARY_CLIENT_ID = "formula_library_client"
 
 
 def connect():
@@ -135,6 +136,35 @@ def init_db():
             """
         )
         ensure_column(conn, "clients", "gender", "TEXT")
+        ensure_column(conn, "formulas", "category", "TEXT")
+        ensure_column(conn, "formulas", "pattern", "TEXT")
+        ensure_column(conn, "formulas", "audience", "TEXT")
+        ensure_column(conn, "formulas", "composition", "TEXT")
+        ensure_column(conn, "formulas", "default_dosage", "TEXT")
+        ensure_column(conn, "formulas", "modifications", "TEXT")
+        ensure_column(conn, "formulas", "taste_notes", "TEXT")
+        ensure_column(conn, "formulas", "cost_notes", "TEXT")
+        ensure_column(conn, "formulas", "notes", "TEXT")
+        now = int(time.time())
+        conn.execute(
+            """
+            INSERT INTO clients (id, name, gender, phone, age, constitution, concern, notes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO NOTHING
+            """,
+            (
+                FORMULA_LIBRARY_CLIENT_ID,
+                "配方库",
+                "",
+                "",
+                "",
+                "系统",
+                "系统隐藏客户，用于兼容旧版 formulas.client_id 外键。",
+                "system_formula_library",
+                now,
+                now,
+            ),
+        )
 
 
 def password_hash(password, salt=None):
@@ -190,17 +220,32 @@ def row_to_client(row):
 
 
 def row_to_formula(row):
+    ingredients = json.loads(row["ingredients_json"] or "[]")
+    composition = row["composition"] or "、".join(item.get("name", "") for item in ingredients if item.get("name"))
+    default_dosage = row["default_dosage"] or "，".join(
+        f"{item.get('name', '')}{item.get('grams', '')}g" for item in ingredients if item.get("name") and item.get("grams") is not None
+    )
     return {
         "id": row["id"],
         "clientId": row["client_id"],
+        "isLibrary": row["client_id"] == FORMULA_LIBRARY_CLIENT_ID,
         "name": row["name"],
+        "category": row["category"] or "",
+        "pattern": row["pattern"] or "",
+        "audience": row["audience"] or "",
+        "composition": composition,
+        "defaultDosage": default_dosage,
         "dailyBags": row["daily_bags"],
         "days": row["days"],
         "waterMl": row["water_ml"],
         "status": row["status"],
         "usage": row["usage"] or "",
+        "modifications": row["modifications"] or "",
         "cautions": row["cautions"] or "",
-        "ingredients": json.loads(row["ingredients_json"] or "[]"),
+        "tasteNotes": row["taste_notes"] or "",
+        "costNotes": row["cost_notes"] or "",
+        "notes": row["notes"] or "",
+        "ingredients": ingredients,
     }
 
 
@@ -411,7 +456,13 @@ class Handler(SimpleHTTPRequestHandler):
 
     def data(self):
         with connect() as conn:
-            clients = [row_to_client(row) for row in conn.execute("SELECT * FROM clients ORDER BY updated_at DESC")]
+            clients = [
+                row_to_client(row)
+                for row in conn.execute(
+                    "SELECT * FROM clients WHERE id != ? ORDER BY updated_at DESC",
+                    (FORMULA_LIBRARY_CLIENT_ID,),
+                )
+            ]
             formulas = [row_to_formula(row) for row in conn.execute("SELECT * FROM formulas ORDER BY updated_at DESC")]
             client_sessions = [
                 row_to_client_session(row)
@@ -520,24 +571,37 @@ class Handler(SimpleHTTPRequestHandler):
     def create_formula(self):
         payload = read_json(self)
         now = int(time.time())
+        ingredients = payload.get("ingredients", [])
+        client_id = payload.get("clientId") or FORMULA_LIBRARY_CLIENT_ID
         with connect() as conn:
             conn.execute(
                 """
                 INSERT INTO formulas
-                (id, client_id, name, daily_bags, days, water_ml, status, usage, cautions, ingredients_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, client_id, name, category, pattern, audience, composition, default_dosage,
+                 daily_bags, days, water_ml, status, usage, modifications, cautions, taste_notes,
+                 cost_notes, notes, ingredients_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload.get("id") or f"formula_{secrets.token_hex(8)}",
-                    payload["clientId"],
+                    client_id,
                     payload["name"],
-                    int(payload["dailyBags"]),
-                    int(payload["days"]),
+                    payload.get("category", ""),
+                    payload.get("pattern", ""),
+                    payload.get("audience", ""),
+                    payload.get("composition", ""),
+                    payload.get("defaultDosage", ""),
+                    int(payload.get("dailyBags") or 1),
+                    int(payload.get("days") or 1),
                     int(payload.get("waterMl") or 350),
                     payload.get("status") or "待复核",
                     payload.get("usage", ""),
+                    payload.get("modifications", ""),
                     payload.get("cautions", ""),
-                    json.dumps(payload.get("ingredients", []), ensure_ascii=False),
+                    payload.get("tasteNotes", ""),
+                    payload.get("costNotes", ""),
+                    payload.get("notes", ""),
+                    json.dumps(ingredients, ensure_ascii=False),
                     now,
                     now,
                 ),
@@ -622,23 +686,35 @@ class Handler(SimpleHTTPRequestHandler):
     def update_formula(self, formula_id):
         payload = read_json(self)
         now = int(time.time())
+        client_id = payload.get("clientId") or FORMULA_LIBRARY_CLIENT_ID
         with connect() as conn:
             conn.execute(
                 """
                 UPDATE formulas
-                SET client_id = ?, name = ?, daily_bags = ?, days = ?, water_ml = ?, status = ?,
-                    usage = ?, cautions = ?, ingredients_json = ?, updated_at = ?
+                SET client_id = ?, name = ?, category = ?, pattern = ?, audience = ?, composition = ?,
+                    default_dosage = ?, daily_bags = ?, days = ?, water_ml = ?, status = ?,
+                    usage = ?, modifications = ?, cautions = ?, taste_notes = ?, cost_notes = ?,
+                    notes = ?, ingredients_json = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
-                    payload["clientId"],
+                    client_id,
                     payload["name"],
-                    int(payload["dailyBags"]),
-                    int(payload["days"]),
+                    payload.get("category", ""),
+                    payload.get("pattern", ""),
+                    payload.get("audience", ""),
+                    payload.get("composition", ""),
+                    payload.get("defaultDosage", ""),
+                    int(payload.get("dailyBags") or 1),
+                    int(payload.get("days") or 1),
                     int(payload.get("waterMl") or 350),
                     payload.get("status") or "待复核",
                     payload.get("usage", ""),
+                    payload.get("modifications", ""),
                     payload.get("cautions", ""),
+                    payload.get("tasteNotes", ""),
+                    payload.get("costNotes", ""),
+                    payload.get("notes", ""),
                     json.dumps(payload.get("ingredients", []), ensure_ascii=False),
                     now,
                     formula_id,

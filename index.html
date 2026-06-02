@@ -34,7 +34,7 @@
         <nav class="nav-tabs" aria-label="主导航">
           <button class="nav-tab active" data-view="dashboard" type="button">总览</button>
           <button class="nav-tab" data-view="clients" type="button">顾客档案</button>
-          <button class="nav-tab" data-view="formulas" type="button">茶包方案</button>
+          <button class="nav-tab" data-view="formulas" type="button">配方库</button>
           <button class="nav-tab" data-view="export" type="button">导出配方单</button>
         </nav>
         <div class="side-panel">
@@ -219,12 +219,19 @@
           <div class="split-layout formula-layout">
             <form class="editor-panel" id="formulaForm">
               <div class="section-heading">
-                <h3>茶包方案生成</h3>
+                <h3>配方库管理</h3>
                 <button class="ghost-button small" id="resetFormula" type="button">清空</button>
               </div>
               <input type="hidden" id="formulaId" />
-              <label>选择顾客<select id="formulaClient" required></select></label>
-              <label>方案名称<input id="formulaName" required placeholder="例如：健脾祛湿代茶饮" /></label>
+              <label>关联顾客<select id="formulaClient"></select></label>
+              <label>方名<input id="formulaName" required placeholder="例如：健脾祛湿代茶饮" /></label>
+              <div class="two-col">
+                <label>分类<input id="formulaCategory" placeholder="例如：安神助眠、健脾祛湿" /></label>
+                <label>适用证型<input id="formulaPattern" placeholder="例如：心脾两虚、痰湿内阻" /></label>
+              </div>
+              <label>适用人群<input id="formulaAudience" placeholder="例如：睡眠浅、饭后腹胀、久坐湿重人群" /></label>
+              <label>组成<textarea id="formulaComposition" rows="3" placeholder="例如：茯苓、酸枣仁、陈皮"></textarea></label>
+              <label>默认剂量<textarea id="formulaDefaultDosage" rows="3" placeholder="例如：茯苓3g，酸枣仁5g，陈皮2g"></textarea></label>
               <div class="two-col">
                 <label>每日包数<input id="dailyBags" type="number" min="1" value="2" required /></label>
                 <label>调理天数<input id="days" type="number" min="1" value="7" required /></label>
@@ -234,7 +241,13 @@
                 <label>状态<select id="formulaStatus"><option>待复核</option><option>可制作</option><option>已交付</option></select></label>
               </div>
               <label>用法<textarea id="usage" rows="3">每日代茶温饮，饭后或两餐间饮用。</textarea></label>
+              <label>加减规则<textarea id="formulaModifications" rows="3" placeholder="例如：口干明显加麦冬；腹胀明显减滋腻药味"></textarea></label>
               <label>注意事项<textarea id="cautions" rows="3" placeholder="根据顾客情况填写禁忌、停用条件等"></textarea></label>
+              <div class="two-col">
+                <label>口感备注<textarea id="formulaTasteNotes" rows="3" placeholder="例如：微酸、偏淡，可少量加陈皮调味"></textarea></label>
+                <label>成本备注<textarea id="formulaCostNotes" rows="3" placeholder="例如：酸枣仁成本较高，可复核库存"></textarea></label>
+              </div>
+              <label>备注<textarea id="formulaNotes" rows="3" placeholder="内部管理备注"></textarea></label>
 
               <div class="ingredient-header">
                 <h4>药食同源/中药材</h4>
@@ -246,12 +259,12 @@
                 <span>总包数 <strong id="totalBags">0</strong></span>
                 <span>总克重 <strong id="totalWeight">0g</strong></span>
               </div>
-              <button class="primary-button" type="submit">保存方案</button>
+              <button class="primary-button" type="submit">保存配方</button>
             </form>
             <section class="work-section">
               <div class="section-heading">
-                <h3>方案列表</h3>
-                <input class="search-input" id="formulaSearch" placeholder="搜索顾客、方案、状态" />
+                <h3>配方列表</h3>
+                <input class="search-input" id="formulaSearch" placeholder="搜索方名、分类、证型、人群、组成" />
               </div>
               <div class="records-list" id="formulaList"></div>
             </section>
