@@ -23,13 +23,18 @@ body {
   font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-body.auth-required .app-shell {
+body.auth-required .app-shell,
+body.reauth-open .app-shell {
   filter: blur(3px);
-  pointer-events: none;
   user-select: none;
 }
 
-body:not(.auth-required) .login-screen {
+body.auth-required .app-shell {
+  pointer-events: none;
+}
+
+body:not(.auth-required) .login-screen,
+body:not(.reauth-open) .reauth-overlay {
   display: none;
 }
 
@@ -50,7 +55,8 @@ button {
   grid-template-columns: 280px 1fr;
 }
 
-.login-screen {
+.login-screen,
+.reauth-overlay {
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -61,7 +67,8 @@ button {
   backdrop-filter: blur(8px);
 }
 
-.login-panel {
+.login-panel,
+.reauth-panel {
   width: min(420px, 100%);
   display: grid;
   gap: 16px;
@@ -90,6 +97,19 @@ button {
   color: var(--rose);
   margin: 0;
   font-size: 13px;
+}
+
+.reauth-copy {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+  font-size: 14px;
+}
+
+.reauth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .sidebar {

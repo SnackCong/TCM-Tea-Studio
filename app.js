@@ -12,6 +12,9 @@ const state = {
   user: null,
 };
 
+let reauthPromise = null;
+let reauthController = null;
+
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
@@ -29,16 +32,96 @@ function uid(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+function cloneOptions(options = {}) {
+  return {
     ...options,
+    headers: { ...(options.headers || {}) },
+  };
+}
+
+function isAppContext() {
+  return !window.location.pathname.startsWith("/login");
+}
+
+async function loginRequest(username, password) {
+  const response = await fetch("/api/login", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "登录失败");
+  return data;
+}
+
+async function fetchCurrentSession() {
+  const response = await fetch("/api/me", {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "请先登录");
+  if (data.user?.username !== "admin") throw new Error("当前账号无权继续操作");
+  return data;
+}
+
+function closeReauthModal() {
+  document.body.classList.remove("reauth-open");
+  $("#reauthOverlay")?.setAttribute("aria-hidden", "true");
+  $("#reauthPassword").value = "";
+  $("#reauthMessage").textContent = "";
+}
+
+function requestReauth() {
+  if (reauthPromise) return reauthPromise;
+
+  document.body.classList.add("reauth-open");
+  $("#reauthOverlay").setAttribute("aria-hidden", "false");
+  $("#reauthMessage").textContent = "登录状态已过期，请重新登录后继续。";
+  $("#reauthPassword").value = "";
+  window.setTimeout(() => $("#reauthUsername").focus(), 0);
+
+  reauthPromise = new Promise((resolve, reject) => {
+    reauthController = { resolve, reject };
+  }).finally(() => {
+    reauthPromise = null;
+    reauthController = null;
+  });
+
+  return reauthPromise;
+}
+
+async function apiFetch(path, options = {}, settings = {}) {
+  const requestOptions = cloneOptions(options);
+  const response = await fetch(path, {
+    ...requestOptions,
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(requestOptions.headers || {}) },
   });
   if (response.status === 401) {
-    showLogin();
-    throw new Error("未登录或会话已过期");
+    if (settings.reauth === false || !isAppContext()) {
+      showLogin();
+      throw new Error("未登录或会话已过期");
+    }
+    await requestReauth();
+    const retryOptions = cloneOptions(options);
+    const retryResponse = await fetch(path, {
+      ...retryOptions,
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...(retryOptions.headers || {}) },
+    });
+    if (retryResponse.status === 401) {
+      showLogin("登录状态已过期，请重新登录");
+      throw new Error("未登录或会话已过期");
+    }
+    return retryResponse;
   }
+  return response;
+}
+
+async function api(path, options = {}, settings = {}) {
+  const response = await apiFetch(path, options, settings);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "请求失败");
   return data;
@@ -53,7 +136,7 @@ function toast(message) {
 
 function showLogin(message = "") {
   const suffix = message ? `?message=${encodeURIComponent(message)}` : "";
-  window.location.assign(`/login${suffix}`);
+  window.location.replace(`/login${suffix}`);
 }
 
 function showApp() {
@@ -674,10 +757,28 @@ function bindEvents() {
   $("#printFormula").addEventListener("click", () => window.print());
   $("#copyFormula").addEventListener("click", copyFormulaText);
 
-  const loginForm = $("#loginForm");
-  if (loginForm) {
-    loginForm.addEventListener("submit", (event) => event.preventDefault());
-  }
+  $("#reauthCancel").addEventListener("click", () => {
+    reauthController?.reject(new Error("重新登录已取消"));
+    window.location.replace("/login");
+  });
+  $("#reauthForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = $("#reauthMessage");
+    message.textContent = "";
+    try {
+      await loginRequest($("#reauthUsername").value.trim(), $("#reauthPassword").value);
+      const session = await fetchCurrentSession();
+      state.user = session.user;
+      showApp();
+      closeReauthModal();
+      reauthController?.resolve(session.user);
+      toast("登录已恢复，正在继续保存");
+    } catch (error) {
+      message.textContent = error.message;
+      $("#reauthPassword").value = "";
+      $("#reauthPassword").focus();
+    }
+  });
 
   $("#clientForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -847,7 +948,7 @@ async function boot() {
   bindEvents();
   resetFormulaForm();
   try {
-    const session = await api("/api/session");
+    const session = await api("/api/session", {}, { reauth: false });
     state.user = session.user;
     showApp();
     await refreshData();

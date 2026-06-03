@@ -7,19 +7,23 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <section class="login-screen" id="loginScreen">
-      <form class="login-panel" id="loginForm">
+    <section class="reauth-overlay" id="reauthOverlay" aria-hidden="true">
+      <form class="reauth-panel" id="reauthForm">
         <div class="brand login-brand">
           <div class="brand-mark">茶</div>
           <div>
             <h1>TCM Tea Studio</h1>
-            <p>登录配方管理系统</p>
+            <p>会话已过期，请重新登录</p>
           </div>
         </div>
-        <label>账号<input id="loginUsername" autocomplete="username" required placeholder="管理员账号" /></label>
-        <label>密码<input id="loginPassword" autocomplete="current-password" required type="password" placeholder="管理员密码" /></label>
-        <button class="primary-button" type="submit">登录</button>
-        <p class="auth-message" id="loginMessage"></p>
+        <p class="reauth-copy">当前页面不会刷新，未保存的表单内容会保留。登录成功后系统会自动重试刚才的请求。</p>
+        <label>账号<input id="reauthUsername" autocomplete="username" required placeholder="管理员账号" /></label>
+        <label>密码<input id="reauthPassword" autocomplete="current-password" required type="password" placeholder="管理员密码" /></label>
+        <div class="reauth-actions">
+          <button class="ghost-button" id="reauthCancel" type="button">取消</button>
+          <button class="primary-button" type="submit">重新登录</button>
+        </div>
+        <p class="auth-message" id="reauthMessage"></p>
       </form>
     </section>
     <div class="app-shell">
@@ -286,6 +290,6 @@
       </main>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260603-session-expiry"></script>
+    <script src="app.js?v=20260603-reauth-modal"></script>
   </body>
 </html>
