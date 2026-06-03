@@ -2,6 +2,7 @@
 
 ## 2026-06-03
 
+- Imported the first five official starter formula templates from `examples/formula_templates.starter.json`.
 - Added true logout behavior that deletes the server-side session, clears the session cookie, and returns the browser to `/login`.
 - Reduced default login session lifetime to 30 minutes with both cookie `Max-Age=1800` and server-side `sessions.expires_at` enforcement.
 - Cleared invalid/expired session cookies on protected API failures and protected page redirects.
