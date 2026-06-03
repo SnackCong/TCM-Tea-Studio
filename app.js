@@ -634,15 +634,23 @@ async function seedDemo() {
 }
 
 async function logout() {
-  await api("/api/logout", { method: "POST", body: JSON.stringify({}) });
-  state.user = null;
-  state.clients = [];
-  state.formulas = [];
-  state.formulaTemplates = [];
-  state.clientSessions = [];
-  state.clientFormulas = [];
-  state.clientTodos = [];
-  window.location.assign("/login");
+  try {
+    await fetch("/api/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+  } finally {
+    state.user = null;
+    state.clients = [];
+    state.formulas = [];
+    state.formulaTemplates = [];
+    state.clientSessions = [];
+    state.clientFormulas = [];
+    state.clientTodos = [];
+    window.location.replace("/login");
+  }
 }
 
 function bindEvents() {

@@ -2,6 +2,9 @@
 
 ## 2026-06-03
 
+- Added true logout behavior that deletes the server-side session, clears the session cookie, and returns the browser to `/login`.
+- Reduced default login session lifetime to 30 minutes with both cookie `Max-Age=1800` and server-side `sessions.expires_at` enforcement.
+- Cleared invalid/expired session cookies on protected API failures and protected page redirects.
 - Split the unauthenticated login page from the authenticated business app shell to prevent the workspace from flashing before login.
 - Added server-side route checks so unauthenticated business routes redirect to `/login` while authenticated users can enter `/app`.
 - Fixed authenticated `/app.js` routing so the business app receives JavaScript instead of the app shell HTML.

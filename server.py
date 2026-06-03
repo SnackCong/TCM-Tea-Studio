@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DB_PATH = Path(os.environ.get("TCM_DB_PATH", DATA_DIR / "tcm_tea_studio.sqlite3"))
 SESSION_COOKIE = "tcm_session"
-SESSION_TTL_SECONDS = 60 * 60 * 12
+SESSION_TTL_SECONDS = int(os.environ.get("TCM_SESSION_TTL_SECONDS", "1800"))
 COOKIE_SECURE = os.environ.get("TCM_COOKIE_SECURE", "1") != "0"
 LEGACY_FORMULA_LIBRARY_CLIENT_ID = "formula_library_client"
 
@@ -363,16 +363,18 @@ def response_json(handler, data, status=HTTPStatus.OK, headers=None):
     handler.wfile.write(body)
 
 
-def redirect(handler, location):
+def redirect(handler, location, headers=None):
     handler.send_response(HTTPStatus.FOUND)
     handler.send_header("Location", location)
+    for key, value in (headers or {}).items():
+        handler.send_header(key, value)
     handler.end_headers()
 
 
 def cookie_header(token, expires=False):
     secure = "; Secure" if COOKIE_SECURE else ""
     if expires:
-        return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax{secure}"
+        return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax{secure}"
     return f"{SESSION_COOKIE}={token}; Path=/; Max-Age={SESSION_TTL_SECONDS}; HttpOnly; SameSite=Lax{secure}"
 
 
@@ -398,7 +400,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path in app_routes or path.startswith("/app/") or path in protected_assets:
             if not self.current_user():
-                redirect(self, "/login")
+                redirect(self, "/login", headers=self.clear_cookie_header_if_present())
                 return
             if path in protected_assets:
                 self.path = path
@@ -439,13 +441,13 @@ class Handler(SimpleHTTPRequestHandler):
             return None
         now = int(time.time())
         with connect() as conn:
-            conn.execute("DELETE FROM sessions WHERE expires_at < ?", (now,))
+            conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (now,))
             row = conn.execute(
                 """
                 SELECT users.id, users.username
                 FROM sessions
                 JOIN users ON users.id = sessions.user_id
-                WHERE sessions.token = ? AND sessions.expires_at >= ?
+                WHERE sessions.token = ? AND sessions.expires_at > ?
                 """,
                 (token.value, now),
             ).fetchone()
@@ -453,10 +455,21 @@ class Handler(SimpleHTTPRequestHandler):
             return None
         return {"id": row["id"], "username": row["username"]}
 
+    def clear_cookie_header_if_present(self):
+        cookie = SimpleCookie(self.headers.get("Cookie"))
+        if cookie.get(SESSION_COOKIE):
+            return {"Set-Cookie": cookie_header("", expires=True)}
+        return {}
+
     def require_user(self):
         user = self.current_user()
         if not user:
-            response_json(self, {"error": "请先登录"}, HTTPStatus.UNAUTHORIZED)
+            response_json(
+                self,
+                {"error": "请先登录"},
+                HTTPStatus.UNAUTHORIZED,
+                headers=self.clear_cookie_header_if_present(),
+            )
             return None
         return user
 
@@ -538,7 +551,12 @@ class Handler(SimpleHTTPRequestHandler):
     def session(self):
         user = self.current_user()
         if not user:
-            response_json(self, {"error": "请先登录"}, HTTPStatus.UNAUTHORIZED)
+            response_json(
+                self,
+                {"error": "请先登录"},
+                HTTPStatus.UNAUTHORIZED,
+                headers=self.clear_cookie_header_if_present(),
+            )
             return
         response_json(self, {"user": user})
 

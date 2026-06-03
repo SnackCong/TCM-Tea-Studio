@@ -28,13 +28,15 @@ The login page and business app shell are separated at the server route level:
 - Authenticated `/app.js` is served as JavaScript, not as the app shell HTML, so the front end can initialize the current user before enabling business controls.
 - Current-user checks are available through both `/api/session` and `/api/me`; browser requests use `credentials: "include"` so the session cookie is sent consistently for `/app` and `/api/*`.
 - Login/app HTML, business scripts, and API responses send `Cache-Control: no-store`; the app shell loads a versioned `app.js` URL to avoid stale edge caches serving the wrong asset after auth-route changes.
+- Login sessions expire after `1800` seconds by default. The browser cookie uses `Max-Age=1800`, and every protected page/API request also checks the server-side `sessions.expires_at` value.
+- `POST /api/logout` deletes the current server-side session and clears the session cookie with `Max-Age=0` and an expired `Expires` value.
 
 This prevents the customer, case-center, formula-library, and export UI shell from flashing before the login check completes. Business data still remains protected by authenticated `/api/*` endpoints.
 
 ## Current Risk Points
 
 - There is one admin account model; no per-user roles or audit log yet.
-- Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in the default production configuration. For local HTTP-only development, set `TCM_COOKIE_SECURE=0`.
+- Session cookies are `HttpOnly`, `SameSite=Lax`, `Max-Age=1800`, and `Secure` in the default production configuration. For local HTTP-only development, set `TCM_COOKIE_SECURE=0`.
 - Current Cloudflare origin certificate is self-signed. It works with Cloudflare Full, but Full strict should use Cloudflare Origin CA or Let's Encrypt.
 
 ## Minimal Security Hardening Plan
