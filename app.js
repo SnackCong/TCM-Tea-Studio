@@ -31,7 +31,7 @@ function uid(prefix) {
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
-    credentials: "same-origin",
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     ...options,
   });

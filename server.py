@@ -386,6 +386,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.handle_api("GET", path)
             return
         app_routes = {"/app", "/dashboard", "/clients", "/client-detail", "/formulas", "/export", "/index.html"}
+        protected_assets = {"/app.js"}
 
         if path in ("/", "/login", "/login.html"):
             if self.current_user():
@@ -395,11 +396,14 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_GET()
             return
 
-        if path in app_routes or path.startswith("/app/") or path == "/app.js":
+        if path in app_routes or path.startswith("/app/") or path in protected_assets:
             if not self.current_user():
                 redirect(self, "/login")
                 return
-            self.path = "/index.html"
+            if path in protected_assets:
+                self.path = path
+            else:
+                self.path = "/index.html"
             super().do_GET()
             return
 
@@ -450,7 +454,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.login()
             if path == "/api/logout" and method == "POST":
                 return self.logout()
-            if path == "/api/session" and method == "GET":
+            if path in ("/api/session", "/api/me") and method == "GET":
                 return self.session()
 
             user = self.require_user()

@@ -1,7 +1,7 @@
 async function login(username, password) {
   const response = await fetch("/api/login", {
     method: "POST",
-    credentials: "same-origin",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });

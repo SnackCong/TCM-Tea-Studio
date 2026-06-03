@@ -25,6 +25,8 @@ The login page and business app shell are separated at the server route level:
 - Unauthenticated `GET /` and `GET /login` return `login.html`.
 - Unauthenticated business routes such as `/app`, `/clients`, `/formulas`, `/export`, `/index.html`, and `/app.js` redirect to `/login`.
 - Authenticated `GET /` redirects to `/app`, and `/app` serves the business app shell.
+- Authenticated `/app.js` is served as JavaScript, not as the app shell HTML, so the front end can initialize the current user before enabling business controls.
+- Current-user checks are available through both `/api/session` and `/api/me`; browser requests use `credentials: "include"` so the session cookie is sent consistently for `/app` and `/api/*`.
 
 This prevents the customer, case-center, formula-library, and export UI shell from flashing before the login check completes. Business data still remains protected by authenticated `/api/*` endpoints.
 

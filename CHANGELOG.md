@@ -4,6 +4,8 @@
 
 - Split the unauthenticated login page from the authenticated business app shell to prevent the workspace from flashing before login.
 - Added server-side route checks so unauthenticated business routes redirect to `/login` while authenticated users can enter `/app`.
+- Fixed authenticated `/app.js` routing so the business app receives JavaScript instead of the app shell HTML.
+- Added `/api/me` as a current-user alias and switched login/app fetch calls to include credentials for consistent session initialization.
 
 ## 2026-06-02
 
