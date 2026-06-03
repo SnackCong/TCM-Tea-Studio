@@ -416,6 +416,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.handle_api("PUT", urlparse(self.path).path)
 
     def end_headers(self):
+        path = urlparse(self.path).path
+        no_store_paths = {
+            "/",
+            "/login",
+            "/login.html",
+            "/app",
+            "/index.html",
+            "/app.js",
+            "/login.js",
+        }
+        if path in no_store_paths or path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         super().end_headers()
