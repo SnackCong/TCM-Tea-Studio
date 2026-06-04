@@ -30,7 +30,9 @@ The login page and business app shell are separated at the server route level:
 - Login/app HTML, business scripts, and API responses send `Cache-Control: no-store`; the app shell loads a versioned `app.js` URL to avoid stale edge caches serving the wrong asset after auth-route changes.
 - Login sessions expire after `1800` seconds by default. The browser cookie uses `Max-Age=1800`, and every protected page/API request also checks the server-side `sessions.expires_at` value.
 - `POST /api/logout` deletes the current server-side session and clears the session cookie with `Max-Age=0` and an expired `Expires` value.
-- Inside the authenticated app, protected API `401` responses open a local re-login modal instead of navigating away. The page is not refreshed, unsaved form input remains in place, and the failed request is retried after `/api/login` plus `/api/me` confirm the admin session.
+- Inside the authenticated app, protected API `401` responses and save actions with missing in-memory user state open a local re-login modal instead of navigating away. The page is not refreshed, unsaved form input remains in place, and the failed request is retried after `/api/login` plus `/api/me` confirm the admin session.
+- `/app` business flows must not call `/login` directly on session expiry. Direct login-page navigation is reserved for initial unauthenticated page loads, explicit re-login cancellation, and active logout.
+- Session-expiry verification uses the local CLI helper `scripts/expire_session.py`; no public test endpoint is exposed.
 
 This prevents the customer, case-center, formula-library, and export UI shell from flashing before the login check completes. Business data still remains protected by authenticated `/api/*` endpoints.
 

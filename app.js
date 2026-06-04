@@ -43,6 +43,10 @@ function isAppContext() {
   return !window.location.pathname.startsWith("/login");
 }
 
+function shouldRedirectOnUnauthorized(settings = {}) {
+  return settings.redirectOnUnauthorized === true;
+}
+
 async function loginRequest(username, password) {
   const response = await fetch("/api/login", {
     method: "POST",
@@ -73,12 +77,12 @@ function closeReauthModal() {
   $("#reauthMessage").textContent = "";
 }
 
-function requestReauth() {
+function requestReauth(message = "登录状态已过期，请重新登录后继续。") {
   if (reauthPromise) return reauthPromise;
 
   document.body.classList.add("reauth-open");
   $("#reauthOverlay").setAttribute("aria-hidden", "false");
-  $("#reauthMessage").textContent = "登录状态已过期，请重新登录后继续。";
+  $("#reauthMessage").textContent = message;
   $("#reauthPassword").value = "";
   window.setTimeout(() => $("#reauthUsername").focus(), 0);
 
@@ -101,7 +105,7 @@ async function apiFetch(path, options = {}, settings = {}) {
   });
   if (response.status === 401) {
     if (settings.reauth === false || !isAppContext()) {
-      showLogin();
+      if (!isAppContext() || shouldRedirectOnUnauthorized(settings)) showLogin();
       throw new Error("未登录或会话已过期");
     }
     await requestReauth();
@@ -112,12 +116,29 @@ async function apiFetch(path, options = {}, settings = {}) {
       headers: { "Content-Type": "application/json", ...(retryOptions.headers || {}) },
     });
     if (retryResponse.status === 401) {
-      showLogin("登录状态已过期，请重新登录");
-      throw new Error("未登录或会话已过期");
+      state.user = null;
+      throw new Error("登录已恢复，请再次点击保存");
     }
     return retryResponse;
   }
   return response;
+}
+
+async function requireAuthOrReauth() {
+  if (state.user) return state.user;
+  if (isAppContext()) {
+    return requestReauth("登录状态已过期，请重新登录后继续保存。");
+  }
+  showLogin();
+  throw new Error("未登录或会话已过期");
+}
+
+async function runBusinessAction(action) {
+  try {
+    await action();
+  } catch (error) {
+    if (error?.message) toast(error.message);
+  }
 }
 
 async function api(path, options = {}, settings = {}) {
@@ -645,15 +666,18 @@ function copyClientFormula(id) {
 }
 
 async function toggleTodo(id) {
-  const todo = state.clientTodos.find((item) => item.id === id && item.clientId === state.selectedClientId);
-  if (!todo) return;
-  await api(`/api/client-todos/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify({ ...todo, isDone: !todo.isDone }),
+  await runBusinessAction(async () => {
+    await requireAuthOrReauth();
+    const todo = state.clientTodos.find((item) => item.id === id && item.clientId === state.selectedClientId);
+    if (!todo) return;
+    await api(`/api/client-todos/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...todo, isDone: !todo.isDone }),
+    });
+    await refreshData();
+    renderClientDetail();
+    toast(todo.isDone ? "待办已恢复为未完成" : "待办已完成");
   });
-  await refreshData();
-  renderClientDetail();
-  toast(todo.isDone ? "待办已恢复为未完成" : "待办已完成");
 }
 
 function renderFormulaSheet() {
@@ -707,13 +731,16 @@ function copyFormulaText() {
 }
 
 async function seedDemo() {
-  if (state.clients.length || state.formulas.length) {
-    toast("已有数据，未覆盖当前内容");
-    return;
-  }
-  await api("/api/demo", { method: "POST", body: JSON.stringify({}) });
-  await refreshData();
-  toast("示例数据已载入");
+  await runBusinessAction(async () => {
+    await requireAuthOrReauth();
+    if (state.clients.length || state.formulas.length) {
+      toast("已有数据，未覆盖当前内容");
+      return;
+    }
+    await api("/api/demo", { method: "POST", body: JSON.stringify({}) });
+    await refreshData();
+    toast("示例数据已载入");
+  });
 }
 
 async function logout() {
@@ -782,144 +809,159 @@ function bindEvents() {
 
   $("#clientForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const id = $("#clientId").value || uid("client");
-    const payload = {
-      id,
-      name: $("#clientName").value.trim(),
-      gender: $("#clientGender").value,
-      phone: $("#clientPhone").value.trim(),
-      age: $("#clientAge").value,
-      constitution: $("#clientConstitution").value || "未分类",
-      concern: $("#clientConcern").value.trim(),
-      notes: $("#clientNotes").value.trim(),
-    };
-    const exists = state.clients.some((client) => client.id === id);
-    await api(exists ? `/api/clients/${encodeURIComponent(id)}` : "/api/clients", {
-      method: exists ? "PUT" : "POST",
-      body: JSON.stringify(payload),
+    await runBusinessAction(async () => {
+      await requireAuthOrReauth();
+      const id = $("#clientId").value || uid("client");
+      const payload = {
+        id,
+        name: $("#clientName").value.trim(),
+        gender: $("#clientGender").value,
+        phone: $("#clientPhone").value.trim(),
+        age: $("#clientAge").value,
+        constitution: $("#clientConstitution").value || "未分类",
+        concern: $("#clientConcern").value.trim(),
+        notes: $("#clientNotes").value.trim(),
+      };
+      const exists = state.clients.some((client) => client.id === id);
+      await api(exists ? `/api/clients/${encodeURIComponent(id)}` : "/api/clients", {
+        method: exists ? "PUT" : "POST",
+        body: JSON.stringify(payload),
+      });
+      resetClientForm();
+      await refreshData();
+      toast("顾客档案已保存");
     });
-    resetClientForm();
-    await refreshData();
-    toast("顾客档案已保存");
   });
 
   $("#sessionForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const client = clientById(state.selectedClientId);
-    if (!client) {
-      toast("请先选择客户");
-      return;
-    }
-    const payload = {
-      id: uid("visit"),
-      clientId: client.id,
-      visitDate: $("#sessionDate").value,
-      complaintChange: $("#sessionComplaintChange").value.trim(),
-      sleep: $("#sessionSleep").value.trim(),
-      diet: $("#sessionDiet").value.trim(),
-      stool: $("#sessionStool").value.trim(),
-      tongue: $("#sessionTongue").value.trim(),
-      pulse: $("#sessionPulse").value.trim(),
-      advice: $("#sessionAdvice").value.trim(),
-      notes: $("#sessionNotes").value.trim(),
-    };
-    await api("/api/client-sessions", {
-      method: "POST",
-      body: JSON.stringify(payload),
+    await runBusinessAction(async () => {
+      await requireAuthOrReauth();
+      const client = clientById(state.selectedClientId);
+      if (!client) {
+        toast("请先选择客户");
+        return;
+      }
+      const payload = {
+        id: uid("visit"),
+        clientId: client.id,
+        visitDate: $("#sessionDate").value,
+        complaintChange: $("#sessionComplaintChange").value.trim(),
+        sleep: $("#sessionSleep").value.trim(),
+        diet: $("#sessionDiet").value.trim(),
+        stool: $("#sessionStool").value.trim(),
+        tongue: $("#sessionTongue").value.trim(),
+        pulse: $("#sessionPulse").value.trim(),
+        advice: $("#sessionAdvice").value.trim(),
+        notes: $("#sessionNotes").value.trim(),
+      };
+      await api("/api/client-sessions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      resetSessionForm();
+      await refreshData();
+      renderClientDetail();
+      toast("回访记录已保存");
     });
-    resetSessionForm();
-    await refreshData();
-    renderClientDetail();
-    toast("回访记录已保存");
   });
 
   $("#clientFormulaForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const client = clientById(state.selectedClientId);
-    if (!client) {
-      toast("请先选择客户");
-      return;
-    }
-    const payload = {
-      id: uid("client_formula"),
-      clientId: client.id,
-      clientSessionId: $("#clientFormulaSession").value,
-      formulaDate: $("#clientFormulaDate").value,
-      name: $("#clientFormulaName").value.trim(),
-      herbs: $("#clientFormulaHerbs").value.trim(),
-      dosages: $("#clientFormulaDosages").value.trim(),
-      preparation: $("#clientFormulaPreparation").value.trim(),
-      period: $("#clientFormulaPeriod").value.trim(),
-      modifications: $("#clientFormulaModifications").value.trim(),
-      cautions: $("#clientFormulaCautions").value.trim(),
-      notes: $("#clientFormulaNotes").value.trim(),
-    };
-    await api("/api/client-formulas", {
-      method: "POST",
-      body: JSON.stringify(payload),
+    await runBusinessAction(async () => {
+      await requireAuthOrReauth();
+      const client = clientById(state.selectedClientId);
+      if (!client) {
+        toast("请先选择客户");
+        return;
+      }
+      const payload = {
+        id: uid("client_formula"),
+        clientId: client.id,
+        clientSessionId: $("#clientFormulaSession").value,
+        formulaDate: $("#clientFormulaDate").value,
+        name: $("#clientFormulaName").value.trim(),
+        herbs: $("#clientFormulaHerbs").value.trim(),
+        dosages: $("#clientFormulaDosages").value.trim(),
+        preparation: $("#clientFormulaPreparation").value.trim(),
+        period: $("#clientFormulaPeriod").value.trim(),
+        modifications: $("#clientFormulaModifications").value.trim(),
+        cautions: $("#clientFormulaCautions").value.trim(),
+        notes: $("#clientFormulaNotes").value.trim(),
+      };
+      await api("/api/client-formulas", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      resetClientFormulaForm();
+      await refreshData();
+      renderClientDetail();
+      toast("茶方记录已保存");
     });
-    resetClientFormulaForm();
-    await refreshData();
-    renderClientDetail();
-    toast("茶方记录已保存");
   });
 
   $("#todoForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const client = clientById(state.selectedClientId);
-    if (!client) {
-      toast("请先选择客户");
-      return;
-    }
-    const id = $("#todoId").value || uid("client_todo");
-    const existing = state.clientTodos.find((item) => item.id === id);
-    const payload = {
-      id,
-      clientId: client.id,
-      content: $("#todoContent").value.trim(),
-      reminderDate: $("#todoReminderDate").value,
-      isDone: existing?.isDone || false,
-      notes: $("#todoNotes").value.trim(),
-    };
-    await api(existing ? `/api/client-todos/${encodeURIComponent(id)}` : "/api/client-todos", {
-      method: existing ? "PUT" : "POST",
-      body: JSON.stringify(payload),
+    await runBusinessAction(async () => {
+      await requireAuthOrReauth();
+      const client = clientById(state.selectedClientId);
+      if (!client) {
+        toast("请先选择客户");
+        return;
+      }
+      const id = $("#todoId").value || uid("client_todo");
+      const existing = state.clientTodos.find((item) => item.id === id);
+      const payload = {
+        id,
+        clientId: client.id,
+        content: $("#todoContent").value.trim(),
+        reminderDate: $("#todoReminderDate").value,
+        isDone: existing?.isDone || false,
+        notes: $("#todoNotes").value.trim(),
+      };
+      await api(existing ? `/api/client-todos/${encodeURIComponent(id)}` : "/api/client-todos", {
+        method: existing ? "PUT" : "POST",
+        body: JSON.stringify(payload),
+      });
+      resetTodoForm();
+      await refreshData();
+      renderClientDetail();
+      toast("待办事项已保存");
     });
-    resetTodoForm();
-    await refreshData();
-    renderClientDetail();
-    toast("待办事项已保存");
   });
 
   $("#formulaForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!$("#formulaComposition").value.trim()) {
-      toast("请填写组成");
-      return;
-    }
-    const id = $("#formulaId").value || uid("formula_template");
-    const payload = {
-      id,
-      name: $("#formulaName").value.trim(),
-      category: $("#formulaCategory").value.trim(),
-      pattern: $("#formulaPattern").value.trim(),
-      audience: $("#formulaAudience").value.trim(),
-      composition: $("#formulaComposition").value.trim(),
-      defaultDosage: $("#formulaDefaultDosage").value.trim(),
-      usage: $("#usage").value.trim(),
-      modifications: $("#formulaModifications").value.trim(),
-      cautions: $("#cautions").value.trim(),
-      tasteNotes: $("#formulaTasteNotes").value.trim(),
-      costNotes: $("#formulaCostNotes").value.trim(),
-      notes: $("#formulaNotes").value.trim(),
-    };
-    const exists = state.formulaTemplates.some((formula) => formula.id === id);
-    await api(exists ? `/api/formula-templates/${encodeURIComponent(id)}` : "/api/formula-templates", {
-      method: exists ? "PUT" : "POST",
-      body: JSON.stringify(payload),
+    await runBusinessAction(async () => {
+      await requireAuthOrReauth();
+      if (!$("#formulaComposition").value.trim()) {
+        toast("请填写组成");
+        return;
+      }
+      const id = $("#formulaId").value || uid("formula_template");
+      const payload = {
+        id,
+        name: $("#formulaName").value.trim(),
+        category: $("#formulaCategory").value.trim(),
+        pattern: $("#formulaPattern").value.trim(),
+        audience: $("#formulaAudience").value.trim(),
+        composition: $("#formulaComposition").value.trim(),
+        defaultDosage: $("#formulaDefaultDosage").value.trim(),
+        usage: $("#usage").value.trim(),
+        modifications: $("#formulaModifications").value.trim(),
+        cautions: $("#cautions").value.trim(),
+        tasteNotes: $("#formulaTasteNotes").value.trim(),
+        costNotes: $("#formulaCostNotes").value.trim(),
+        notes: $("#formulaNotes").value.trim(),
+      };
+      const exists = state.formulaTemplates.some((formula) => formula.id === id);
+      await api(exists ? `/api/formula-templates/${encodeURIComponent(id)}` : "/api/formula-templates", {
+        method: exists ? "PUT" : "POST",
+        body: JSON.stringify(payload),
+      });
+      await refreshData();
+      toast("配方模板已保存");
     });
-    await refreshData();
-    toast("配方模板已保存");
   });
 
   document.addEventListener("click", (event) => {

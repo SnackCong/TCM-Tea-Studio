@@ -2,6 +2,8 @@
 
 ## 2026-06-03
 
+- Hardened `/app` session-expiry recovery so customer, follow-up, tea formula, formula template, and todo saves call `requireAuthOrReauth()` before saving and never redirect to the full login page during normal business editing.
+- Added `scripts/expire_session.py` as a local-only verification helper for safely expiring one controlled session without exposing a public test API.
 - Added an in-app re-login modal for expired sessions so unsaved forms stay on the page and failed API requests retry after admin reauthentication.
 - Imported the first five official starter formula templates from `examples/formula_templates.starter.json`.
 - Added true logout behavior that deletes the server-side session, clears the session cookie, and returns the browser to `/login`.
