@@ -225,6 +225,29 @@ function fillConstitutionSelects() {
 function resetClientForm() {
   $("#clientForm").reset();
   $("#clientId").value = "";
+  updateClientFormMode();
+}
+
+function updateClientFormMode() {
+  const id = $("#clientId").value;
+  const client = id ? clientById(id) : null;
+  const banner = $("#clientFormMode");
+  const title = $("#clientFormModeTitle");
+  const meta = $("#clientFormModeMeta");
+  const cancelButton = $("#cancelClientEdit");
+  if (client) {
+    banner.classList.remove("is-new");
+    banner.classList.add("is-editing");
+    title.textContent = `🟡 正在编辑客户：${client.name}`;
+    meta.textContent = `创建：${formatTimestamp(client.createdAt)} · 更新：${formatTimestamp(client.updatedAt)}`;
+    cancelButton.hidden = false;
+    return;
+  }
+  banner.classList.remove("is-editing");
+  banner.classList.add("is-new");
+  title.textContent = "🟢 新建客户档案";
+  meta.textContent = "保存后会生成一条新的客户档案。";
+  cancelButton.hidden = true;
 }
 
 function resetFormulaForm() {
@@ -341,6 +364,7 @@ function renderAll() {
   renderClientOptions();
   renderFormulaLibraryOptions();
   renderClients();
+  updateClientFormMode();
   renderClientDetail();
   renderFormulas();
   renderDashboard();
@@ -620,6 +644,7 @@ function editClient(id) {
   $("#clientConstitution").value = client.constitution === "未分类" ? "" : client.constitution;
   $("#clientConcern").value = client.concern || "";
   $("#clientNotes").value = client.notes || "";
+  updateClientFormMode();
   setView("clients");
 }
 
@@ -772,7 +797,8 @@ function bindEvents() {
   });
   $("#seedDemo").addEventListener("click", seedDemo);
   $("#logoutButton").addEventListener("click", logout);
-  $("#resetClient").addEventListener("click", resetClientForm);
+  $("#newClient").addEventListener("click", resetClientForm);
+  $("#cancelClientEdit").addEventListener("click", resetClientForm);
   $("#backToClients").addEventListener("click", () => setView("clients"));
   $("#resetFormula").addEventListener("click", resetFormulaForm);
   $("#addIngredient").addEventListener("click", () => addIngredientRow());
@@ -829,7 +855,7 @@ function bindEvents() {
       });
       resetClientForm();
       await refreshData();
-      toast("顾客档案已保存");
+      toast("✓ 已保存");
     });
   });
 

@@ -363,6 +363,41 @@ button {
   gap: 14px;
 }
 
+.form-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.form-mode-banner strong,
+.form-mode-banner span {
+  display: block;
+}
+
+.form-mode-banner strong {
+  font-size: 14px;
+}
+
+.form-mode-banner span {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.form-mode-banner.is-new {
+  background: #f3f8f1;
+  border-color: #cadcc8;
+}
+
+.form-mode-banner.is-editing {
+  background: #fff8e8;
+  border-color: #ead39f;
+}
+
 .stacked-forms {
   display: grid;
   gap: 18px;

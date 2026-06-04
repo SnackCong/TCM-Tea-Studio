@@ -85,6 +85,16 @@ Safe verification:
 - Use `scripts/expire_session.py --token <controlled-token> --confirm EXPIRE_SESSION` with `TCM_DB_PATH` pointing at the target database.
 - Do not add a public HTTP endpoint for expiring sessions.
 
+## Customer Profile Form Mode Visibility
+
+UX decision:
+- The customer profile form uses one left-side form for both creating and editing customers.
+- The form must display a visible mode banner so the user can always tell whether they are creating a new customer or editing an existing customer.
+- New mode shows `新建客户档案`.
+- Edit mode shows `正在编辑客户：<客户姓名>` plus created/updated timestamps when available.
+- `+ 新建客户` and `取消编辑` both clear the form and return it to new mode.
+- This avoids accidental modification of an existing customer after leaving the page open for minutes or hours.
+
 ---
 
 # Deployment Notes

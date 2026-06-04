@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-06-04
+
+- Added a visible customer profile form mode banner that distinguishes new customer creation from editing an existing customer, with `+ 新建客户` and `取消编辑` controls.
+
 ## 2026-06-03
 
 - Hardened `/app` session-expiry recovery so customer, follow-up, tea formula, formula template, and todo saves call `requireAuthOrReauth()` before saving and never redirect to the full login page during normal business editing.

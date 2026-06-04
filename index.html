@@ -103,7 +103,14 @@
             <form class="editor-panel" id="clientForm">
               <div class="section-heading">
                 <h3>顾客档案</h3>
-                <button class="ghost-button small" id="resetClient" type="button">清空</button>
+                <button class="ghost-button small" id="newClient" type="button">+ 新建客户</button>
+              </div>
+              <div class="form-mode-banner is-new" id="clientFormMode">
+                <div>
+                  <strong id="clientFormModeTitle">🟢 新建客户档案</strong>
+                  <span id="clientFormModeMeta">保存后会生成一条新的客户档案。</span>
+                </div>
+                <button class="ghost-button small" id="cancelClientEdit" type="button" hidden>取消编辑</button>
               </div>
               <input type="hidden" id="clientId" />
               <label>姓名<input id="clientName" required placeholder="例如：林女士" /></label>
@@ -290,6 +297,6 @@
       </main>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260604-reauth-save"></script>
+    <script src="app.js?v=20260604-client-mode"></script>
   </body>
 </html>
