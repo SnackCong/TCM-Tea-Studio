@@ -2,6 +2,7 @@
 
 ## 2026-06-05
 
+- Tuned formula template ingredient row alignment so dosage text is centered, units align vertically, and the delete control uses the right-side space.
 - Refined the formula template ingredient detail layout so each herb, dosage, unit, and delete control stays aligned on one horizontal row on desktop.
 - Versioned the app stylesheet reference so deployment picks up the formula ingredient row layout without stale browser cache.
 - Reworked the formula library form with explicit new/edit mode banners, `+ 新建配方`, `取消编辑`, and a saved confirmation to reduce accidental edits.
