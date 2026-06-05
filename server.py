@@ -148,6 +148,9 @@ def init_db():
                 taste_notes TEXT,
                 cost_notes TEXT,
                 notes TEXT,
+                package_count INTEGER NOT NULL DEFAULT 14,
+                unit_total_grams REAL NOT NULL DEFAULT 0,
+                total_grams REAL NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
             );
@@ -163,6 +166,9 @@ def init_db():
         ensure_column(conn, "formulas", "taste_notes", "TEXT")
         ensure_column(conn, "formulas", "cost_notes", "TEXT")
         ensure_column(conn, "formulas", "notes", "TEXT")
+        ensure_column(conn, "formula_templates", "package_count", "INTEGER NOT NULL DEFAULT 14")
+        ensure_column(conn, "formula_templates", "unit_total_grams", "REAL NOT NULL DEFAULT 0")
+        ensure_column(conn, "formula_templates", "total_grams", "REAL NOT NULL DEFAULT 0")
         conn.execute(
             """
             INSERT INTO formula_templates
@@ -290,6 +296,9 @@ def row_to_formula_template(row):
         "tasteNotes": row["taste_notes"] or "",
         "costNotes": row["cost_notes"] or "",
         "notes": row["notes"] or "",
+        "packageCount": row["package_count"],
+        "unitTotalGrams": row["unit_total_grams"],
+        "totalGrams": row["total_grams"],
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
     }
@@ -845,8 +854,9 @@ class Handler(SimpleHTTPRequestHandler):
                 """
                 INSERT INTO formula_templates
                 (id, name, category, pattern, audience, composition, default_dosage, usage,
-                 modifications, cautions, taste_notes, cost_notes, notes, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 modifications, cautions, taste_notes, cost_notes, notes, package_count,
+                 unit_total_grams, total_grams, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload.get("id") or f"formula_template_{secrets.token_hex(8)}",
@@ -862,6 +872,9 @@ class Handler(SimpleHTTPRequestHandler):
                     payload.get("tasteNotes", ""),
                     payload.get("costNotes", ""),
                     payload.get("notes", ""),
+                    int(payload.get("packageCount") or 14),
+                    float(payload.get("unitTotalGrams") or 0),
+                    float(payload.get("totalGrams") or 0),
                     now,
                     now,
                 ),
@@ -877,7 +890,8 @@ class Handler(SimpleHTTPRequestHandler):
                 UPDATE formula_templates
                 SET name = ?, category = ?, pattern = ?, audience = ?, composition = ?,
                     default_dosage = ?, usage = ?, modifications = ?, cautions = ?,
-                    taste_notes = ?, cost_notes = ?, notes = ?, updated_at = ?
+                    taste_notes = ?, cost_notes = ?, notes = ?, package_count = ?,
+                    unit_total_grams = ?, total_grams = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -893,6 +907,9 @@ class Handler(SimpleHTTPRequestHandler):
                     payload.get("tasteNotes", ""),
                     payload.get("costNotes", ""),
                     payload.get("notes", ""),
+                    int(payload.get("packageCount") or 14),
+                    float(payload.get("unitTotalGrams") or 0),
+                    float(payload.get("totalGrams") or 0),
                     now,
                     template_id,
                 ),

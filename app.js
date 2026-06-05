@@ -191,12 +191,12 @@ function clientById(id) {
 }
 
 function formulaTotals(formula) {
-  const totalBags = Number(formula.dailyBags || 0) * Number(formula.days || 0);
+  const totalBags = Number(formula.packageCount || 0) || (Number(formula.dailyBags || 0) * Number(formula.days || 0));
   const singleWeight = (formula.ingredients || []).reduce((sum, item) => sum + Number(item.grams || 0), 0);
   return {
     totalBags,
-    singleWeight,
-    totalWeight: totalBags * singleWeight,
+    singleWeight: Number(singleWeight.toFixed(2)),
+    totalWeight: Number((totalBags * singleWeight).toFixed(2)),
   };
 }
 
@@ -254,14 +254,40 @@ function resetFormulaForm() {
   $("#formulaForm").reset();
   $("#formulaId").value = "";
   $("#formulaClient").value = "";
-  $("#dailyBags").value = 2;
-  $("#days").value = 7;
+  $("#dailyBags").value = 1;
+  $("#days").value = 1;
   $("#waterMl").value = 350;
   $("#usage").value = "每日代茶温饮，饭后或两餐间饮用。";
-  $("#ingredients").innerHTML = "";
-  addIngredientRow("陈皮", 2);
-  addIngredientRow("茯苓", 3);
+  $("#formulaPackageCount").value = 14;
+  $("#formulaComposition").value = "";
+  $("#formulaDefaultDosage").value = "";
+  $("#formulaParseHint").textContent = "";
+  $("#formulaIngredientRows").innerHTML = "";
+  for (let i = 0; i < 3; i += 1) addIngredientRow();
+  updateFormulaFormMode();
   updateFormulaCalc();
+}
+
+function updateFormulaFormMode() {
+  const id = $("#formulaId").value;
+  const formula = id ? state.formulaTemplates.find((item) => item.id === id) : null;
+  const banner = $("#formulaFormMode");
+  const title = $("#formulaFormModeTitle");
+  const meta = $("#formulaFormModeMeta");
+  const cancelButton = $("#cancelFormulaEdit");
+  if (formula) {
+    banner.classList.remove("is-new");
+    banner.classList.add("is-editing");
+    title.textContent = `🟡 正在编辑配方：${formula.name}`;
+    meta.textContent = `创建：${formatTimestamp(formula.createdAt)} · 更新：${formatTimestamp(formula.updatedAt)}`;
+    cancelButton.hidden = false;
+    return;
+  }
+  banner.classList.remove("is-editing");
+  banner.classList.add("is-new");
+  title.textContent = "🟢 新建配方模板";
+  meta.textContent = "保存后会生成一条新的配方模板。";
+  cancelButton.hidden = true;
 }
 
 function renderClientOptions() {
@@ -365,6 +391,7 @@ function renderAll() {
   renderFormulaLibraryOptions();
   renderClients();
   updateClientFormMode();
+  updateFormulaFormMode();
   renderClientDetail();
   renderFormulas();
   renderDashboard();
@@ -605,10 +632,11 @@ function renderClientDetail() {
 
 function addIngredientRow(name = "", grams = "") {
   const row = document.createElement("div");
-  row.className = "ingredient-row";
+  row.className = "composition-row";
   row.innerHTML = `
     <input class="ingredient-name" placeholder="药材名称" value="${escapeHtml(name)}" />
-    <input class="ingredient-grams" type="number" min="0" step="0.1" placeholder="克/包" value="${escapeHtml(grams)}" />
+    <input class="ingredient-grams" type="number" min="0" step="0.1" placeholder="0" value="${escapeHtml(grams)}" />
+    <span class="composition-unit">g</span>
     <button class="icon-button" type="button" title="删除">×</button>
   `;
   row.querySelector(".icon-button").addEventListener("click", () => {
@@ -616,26 +644,47 @@ function addIngredientRow(name = "", grams = "") {
     updateFormulaCalc();
   });
   row.querySelectorAll("input").forEach((input) => input.addEventListener("input", updateFormulaCalc));
-  $("#ingredients").appendChild(row);
+  $("#formulaIngredientRows").appendChild(row);
 }
 
 function readIngredients() {
-  return $$("#ingredients .ingredient-row").map((row) => ({
+  return $$("#formulaIngredientRows .composition-row").map((row) => ({
     name: row.querySelector(".ingredient-name").value.trim(),
     grams: Number(row.querySelector(".ingredient-grams").value || 0),
   })).filter((item) => item.name && item.grams > 0);
 }
 
+function syncFormulaCompositionFields() {
+  const ingredients = readIngredients();
+  $("#formulaComposition").value = ingredients.map((item) => item.name).join("、");
+  $("#formulaDefaultDosage").value = ingredients.map((item) => `${item.name}${item.grams}g`).join("，");
+  return ingredients;
+}
+
 function updateFormulaCalc() {
+  const ingredients = syncFormulaCompositionFields();
+  const packageCount = Number($("#formulaPackageCount").value || 0);
   const formula = {
-    dailyBags: Number($("#dailyBags").value || 0),
-    days: Number($("#days").value || 0),
-    ingredients: readIngredients(),
+    packageCount,
+    ingredients,
   };
   const totals = formulaTotals(formula);
   $("#singleWeight").textContent = `${totals.singleWeight}g`;
   $("#totalBags").textContent = totals.totalBags;
   $("#totalWeight").textContent = `${totals.totalWeight}g`;
+  return totals;
+}
+
+function parseDosageRows(composition = "", defaultDosage = "") {
+  const rows = [];
+  const parts = defaultDosage.split(/[，,；;、\n]+/).map((item) => item.trim()).filter(Boolean);
+  for (const part of parts) {
+    const match = part.match(/^(.+?)(\d+(?:\.\d+)?)\s*g$/i);
+    if (match) rows.push({ name: match[1].trim().replace(/[：:，,；;、]+$/, ""), grams: match[2] });
+  }
+  if (rows.length) return { rows, parsed: true };
+  const names = composition.split(/[，,、；;\n]+/).map((item) => item.trim()).filter(Boolean);
+  return { rows: names.map((name) => ({ name, grams: "" })), parsed: false };
 }
 
 function editClient(id) {
@@ -668,13 +717,21 @@ function editFormula(id) {
   $("#days").value = 1;
   $("#waterMl").value = 350;
   $("#formulaStatus").value = "待复核";
+  $("#formulaPackageCount").value = formula.packageCount || 14;
   $("#usage").value = formula.usage || "";
   $("#formulaModifications").value = formula.modifications || "";
   $("#cautions").value = formula.cautions || "";
   $("#formulaTasteNotes").value = formula.tasteNotes || "";
   $("#formulaCostNotes").value = formula.costNotes || "";
   $("#formulaNotes").value = formula.notes || "";
-  $("#ingredients").innerHTML = "";
+  $("#formulaIngredientRows").innerHTML = "";
+  const parsed = parseDosageRows(formula.composition || "", formula.defaultDosage || "");
+  parsed.rows.forEach((item) => addIngredientRow(item.name, item.grams));
+  while ($$("#formulaIngredientRows .composition-row").length < 3) addIngredientRow();
+  $("#formulaParseHint").textContent = parsed.parsed || !formula.defaultDosage
+    ? ""
+    : `原默认剂量未能完全解析：${formula.defaultDosage}。请在组成明细中补充每味用量后再保存。`;
+  updateFormulaFormMode();
   updateFormulaCalc();
   setView("formulas");
 }
@@ -805,10 +862,14 @@ function bindEvents() {
   $("#newClient").addEventListener("click", resetClientForm);
   $("#cancelClientEdit").addEventListener("click", resetClientForm);
   $("#backToClients").addEventListener("click", () => setView("clients"));
-  $("#resetFormula").addEventListener("click", resetFormulaForm);
-  $("#addIngredient").addEventListener("click", () => addIngredientRow());
+  $("#newFormula").addEventListener("click", resetFormulaForm);
+  $("#cancelFormulaEdit").addEventListener("click", resetFormulaForm);
+  $("#addFormulaIngredient").addEventListener("click", () => {
+    addIngredientRow();
+    updateFormulaCalc();
+  });
   $("#applyFormulaLibrary").addEventListener("click", applyFormulaLibrary);
-  ["dailyBags", "days"].forEach((id) => $(`#${id}`).addEventListener("input", updateFormulaCalc));
+  $("#formulaPackageCount").addEventListener("input", updateFormulaCalc);
   $("#clientSearch").addEventListener("input", renderClients);
   $("#formulaSearch").addEventListener("input", renderFormulas);
   $("#exportFormula").addEventListener("change", renderFormulaSheet);
@@ -994,10 +1055,12 @@ function bindEvents() {
     event.preventDefault();
     await runBusinessAction(async () => {
       await requireAuthOrReauth();
-      if (!$("#formulaComposition").value.trim()) {
-        toast("请填写组成");
+      const ingredients = readIngredients();
+      if (!ingredients.length) {
+        toast("请填写组成明细");
         return;
       }
+      const totals = updateFormulaCalc();
       const id = $("#formulaId").value || uid("formula_template");
       const payload = {
         id,
@@ -1013,14 +1076,18 @@ function bindEvents() {
         tasteNotes: $("#formulaTasteNotes").value.trim(),
         costNotes: $("#formulaCostNotes").value.trim(),
         notes: $("#formulaNotes").value.trim(),
+        packageCount: Number($("#formulaPackageCount").value || 14),
+        unitTotalGrams: totals.singleWeight,
+        totalGrams: totals.totalWeight,
       };
       const exists = state.formulaTemplates.some((formula) => formula.id === id);
       await api(exists ? `/api/formula-templates/${encodeURIComponent(id)}` : "/api/formula-templates", {
         method: exists ? "PUT" : "POST",
         body: JSON.stringify(payload),
       });
+      resetFormulaForm();
       await refreshData();
-      toast("配方模板已保存");
+      toast("✓ 已保存");
     });
   });
 

@@ -358,6 +358,10 @@ button {
   margin-bottom: 16px;
 }
 
+.compact-heading {
+  margin-bottom: 8px;
+}
+
 .editor-panel {
   display: grid;
   gap: 14px;
@@ -396,6 +400,40 @@ button {
 .form-mode-banner.is-editing {
   background: #fff8e8;
   border-color: #ead39f;
+}
+
+.composition-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfa;
+}
+
+.composition-header,
+.composition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px 42px 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.composition-header {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.composition-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.composition-unit {
+  color: var(--muted);
+  font-weight: 700;
+  text-align: center;
 }
 
 .stacked-forms {

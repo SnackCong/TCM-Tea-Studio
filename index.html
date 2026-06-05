@@ -232,7 +232,14 @@
             <form class="editor-panel" id="formulaForm">
               <div class="section-heading">
                 <h3>配方库管理</h3>
-                <button class="ghost-button small" id="resetFormula" type="button">清空</button>
+                <button class="ghost-button small" id="newFormula" type="button">+ 新建配方</button>
+              </div>
+              <div class="form-mode-banner is-new" id="formulaFormMode">
+                <div>
+                  <strong id="formulaFormModeTitle">🟢 新建配方模板</strong>
+                  <span id="formulaFormModeMeta">保存后会生成一条新的配方模板。</span>
+                </div>
+                <button class="ghost-button small" id="cancelFormulaEdit" type="button" hidden>取消编辑</button>
               </div>
               <input type="hidden" id="formulaId" />
               <input type="hidden" id="formulaClient" />
@@ -240,14 +247,36 @@
               <input type="hidden" id="days" value="1" />
               <input type="hidden" id="waterMl" value="350" />
               <input type="hidden" id="formulaStatus" value="待复核" />
+              <input type="hidden" id="formulaComposition" />
+              <input type="hidden" id="formulaDefaultDosage" />
               <label>方名<input id="formulaName" required placeholder="例如：健脾祛湿代茶饮" /></label>
               <div class="two-col">
                 <label>分类<input id="formulaCategory" placeholder="例如：安神助眠、健脾祛湿" /></label>
                 <label>适用证型<input id="formulaPattern" placeholder="例如：心脾两虚、痰湿内阻" /></label>
               </div>
               <label>适用人群<input id="formulaAudience" placeholder="例如：睡眠浅、饭后腹胀、久坐湿重人群" /></label>
-              <label>组成<textarea id="formulaComposition" rows="3" placeholder="例如：茯苓、酸枣仁、陈皮"></textarea></label>
-              <label>默认剂量<textarea id="formulaDefaultDosage" rows="3" placeholder="例如：茯苓3g，酸枣仁5g，陈皮2g"></textarea></label>
+              <section class="composition-panel">
+                <div class="section-heading compact-heading">
+                  <h3>组成明细</h3>
+                  <button class="ghost-button small" id="addFormulaIngredient" type="button">添加组成</button>
+                </div>
+                <p class="fine-print" id="formulaParseHint"></p>
+                <div class="composition-header">
+                  <span>药名</span>
+                  <span>剂量</span>
+                  <span>单位</span>
+                  <span></span>
+                </div>
+                <div class="composition-rows" id="formulaIngredientRows"></div>
+                <div class="two-col">
+                  <label>包数<input id="formulaPackageCount" type="number" min="1" step="1" value="14" /></label>
+                </div>
+                <div class="calc-strip">
+                  <span>单包总克数 <strong id="singleWeight">0g</strong></span>
+                  <span>包数 <strong id="totalBags">14</strong></span>
+                  <span>总克重 <strong id="totalWeight">0g</strong></span>
+                </div>
+              </section>
               <label>用法<textarea id="usage" rows="3">每日代茶温饮，饭后或两餐间饮用。</textarea></label>
               <label>加减规则<textarea id="formulaModifications" rows="3" placeholder="例如：口干明显加麦冬；腹胀明显减滋腻药味"></textarea></label>
               <label>注意事项<textarea id="cautions" rows="3" placeholder="根据顾客情况填写禁忌、停用条件等"></textarea></label>
@@ -256,17 +285,6 @@
                 <label>成本备注<textarea id="formulaCostNotes" rows="3" placeholder="例如：酸枣仁成本较高，可复核库存"></textarea></label>
               </div>
               <label>备注<textarea id="formulaNotes" rows="3" placeholder="内部管理备注"></textarea></label>
-
-              <div class="ingredient-header" hidden>
-                <h4>药食同源/中药材</h4>
-                <button class="ghost-button small" id="addIngredient" type="button">添加</button>
-              </div>
-              <div id="ingredients" hidden></div>
-              <div class="calc-strip" hidden>
-                <span>单包 <strong id="singleWeight">0g</strong></span>
-                <span>总包数 <strong id="totalBags">0</strong></span>
-                <span>总克重 <strong id="totalWeight">0g</strong></span>
-              </div>
               <button class="primary-button" type="submit">保存配方</button>
             </form>
             <section class="work-section">
@@ -319,6 +337,6 @@
       </main>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260605-change-password"></script>
+    <script src="app.js?v=20260605-formula-structure"></script>
   </body>
 </html>

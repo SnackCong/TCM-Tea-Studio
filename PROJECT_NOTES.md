@@ -106,6 +106,20 @@ UX decision:
 - `+ 新建客户` and `取消编辑` both clear the form and return it to new mode.
 - This avoids accidental modification of an existing customer after leaving the page open for minutes or hours.
 
+## Formula Template Form Structure
+
+UX and data-entry decision:
+- The formula library form uses one left-side form for both creating and editing formula templates.
+- The form must display a visible mode banner so the user can always tell whether they are creating a new template or editing an existing template.
+- New mode shows `新建配方模板`.
+- Edit mode shows `正在编辑配方：<方名>` plus created/updated timestamps when available.
+- `+ 新建配方` and `取消编辑` both clear the form and return it to new mode.
+- Formula template composition is entered through structured ingredient rows instead of separate free-text composition and dosage fields.
+- The structured rows generate the existing `composition` field as ingredient names joined by `、` and `default_dosage` as `药名剂量g` entries joined by `，`.
+- The formula library records package count, single-package grams, and total grams for quick template-level dosing estimates.
+- The previous duplicate ingredient module on the formula library page was removed; formula template entry should use only the structured composition rows.
+- When existing `default_dosage` text can be parsed, the edit form reconstructs structured rows. If parsing fails, the UI keeps the old text visible in a warning and requires manual cleanup before saving.
+
 ---
 
 # Deployment Notes

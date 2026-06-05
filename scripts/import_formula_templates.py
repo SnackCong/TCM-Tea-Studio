@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -24,6 +25,9 @@ FIELD_MAP = {
     "taste_notes": "taste_notes",
     "cost_notes": "cost_notes",
     "notes": "notes",
+    "package_count": "package_count",
+    "unit_total_grams": "unit_total_grams",
+    "total_grams": "total_grams",
 }
 
 
@@ -53,8 +57,37 @@ def clean_text(value):
     return str(value).strip()
 
 
+def clean_number(value, default=0):
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def parse_default_dosage_weight(default_dosage):
+    total = 0
+    for part in re.split(r"[，,；;、\n]+", default_dosage or ""):
+        match = re.search(r"(\d+(?:\.\d+)?)\s*g\b", part.strip(), flags=re.IGNORECASE)
+        if match:
+            total += float(match.group(1))
+    return total
+
+
 def normalize(raw):
-    return {target: clean_text(raw.get(source)) for source, target in FIELD_MAP.items()}
+    item = {target: clean_text(raw.get(source)) for source, target in FIELD_MAP.items()}
+    package_count = int(clean_number(raw.get("package_count"), 14) or 14)
+    unit_total_grams = clean_number(raw.get("unit_total_grams"), 0)
+    if not unit_total_grams:
+        unit_total_grams = parse_default_dosage_weight(item["default_dosage"])
+    total_grams = clean_number(raw.get("total_grams"), 0)
+    if not total_grams and unit_total_grams:
+        total_grams = unit_total_grams * package_count
+    item["package_count"] = package_count
+    item["unit_total_grams"] = round(unit_total_grams, 2)
+    item["total_grams"] = round(total_grams, 2)
+    return item
 
 
 def import_templates(path, update=False, dry_run=False):
@@ -99,7 +132,8 @@ def import_templates(path, update=False, dry_run=False):
                     UPDATE formula_templates
                     SET category = ?, pattern = ?, audience = ?, composition = ?,
                         default_dosage = ?, usage = ?, modifications = ?, cautions = ?,
-                        taste_notes = ?, cost_notes = ?, notes = ?, updated_at = ?
+                        taste_notes = ?, cost_notes = ?, notes = ?, package_count = ?,
+                        unit_total_grams = ?, total_grams = ?, updated_at = ?
                     WHERE id = ?
                     """,
                     (
@@ -114,6 +148,9 @@ def import_templates(path, update=False, dry_run=False):
                         item["taste_notes"],
                         item["cost_notes"],
                         item["notes"],
+                        item["package_count"],
+                        item["unit_total_grams"],
+                        item["total_grams"],
                         now,
                         existing["id"],
                     ),
@@ -127,8 +164,8 @@ def import_templates(path, update=False, dry_run=False):
                 INSERT INTO formula_templates
                 (id, name, category, pattern, audience, composition, default_dosage,
                  usage, modifications, cautions, taste_notes, cost_notes, notes,
-                 created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 package_count, unit_total_grams, total_grams, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     f"formula_template_{server.secrets.token_hex(8)}",
@@ -144,6 +181,9 @@ def import_templates(path, update=False, dry_run=False):
                     item["taste_notes"],
                     item["cost_notes"],
                     item["notes"],
+                    item["package_count"],
+                    item["unit_total_grams"],
+                    item["total_grams"],
                     now,
                     now,
                 ),

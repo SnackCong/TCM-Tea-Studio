@@ -279,6 +279,17 @@ Formula library separation:
 - The legacy hidden client id `formula_library_client` may still exist in older databases for compatibility, but new global template workflows do not depend on it.
 - Legacy formula-library-like records from `formulas` are copied into `formula_templates` by the safe migration with `ON CONFLICT DO NOTHING`; old rows are not deleted automatically.
 
+Formula template composition structure:
+
+- The formula library page now uses structured composition rows as the only editable source for ingredient names and grams.
+- Saving a template generates the existing `formula_templates.composition` text field from ingredient names and `formula_templates.default_dosage` from `药名剂量g` entries.
+- The `formula_templates` table is safely extended with:
+  - `package_count INTEGER NOT NULL DEFAULT 14`
+  - `unit_total_grams REAL NOT NULL DEFAULT 0`
+  - `total_grams REAL NOT NULL DEFAULT 0`
+- These columns are added with `ALTER TABLE ... ADD COLUMN` through application startup migration logic and do not rebuild or delete existing rows.
+- Older templates without structured rows remain readable. During editing, parseable default dosage text is converted back into structured rows; unparseable text is shown in a warning so it can be manually cleaned up before saving.
+
 Formula template import:
 
 ```bash
@@ -293,6 +304,7 @@ Import behavior:
 - `name` is required; records without `name` are skipped with a reason.
 - Same-name templates are skipped by default.
 - Add `--update` to update same-name templates.
+- Old JSON files remain compatible. Optional `package_count`, `unit_total_grams`, and `total_grams` fields are accepted; if they are absent, import defaults to 14 packages and tries to calculate gram totals from `default_dosage`.
 - JSON field mapping:
   - `target_people` -> `formula_templates.audience`
   - `ingredients` -> `formula_templates.composition`

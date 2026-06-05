@@ -135,7 +135,7 @@ TCM_DB_PATH=/opt/tcm-tea-studio/data/tcm_tea_studio.sqlite3 \
 python3 scripts/import_formula_templates.py examples/formula_templates.sample.json --update
 ```
 
-支持字段：`name`、`category`、`pattern`、`target_people`、`ingredients`、`default_dosage`、`usage`、`modifications`、`contraindications`、`taste_notes`、`cost_notes`、`notes`。其中 `name` 必填，缺失会跳过并输出原因。
+支持字段：`name`、`category`、`pattern`、`target_people`、`ingredients`、`default_dosage`、`usage`、`modifications`、`contraindications`、`taste_notes`、`cost_notes`、`notes`。可选字段：`package_count`、`unit_total_grams`、`total_grams`。其中 `name` 必填，缺失会跳过并输出原因。
 
 ## 合规提醒
 
