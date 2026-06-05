@@ -14,3 +14,7 @@ After completing any business feature or architecture/authentication fix:
 1. Update CHANGELOG.md
 2. Update PROJECT_NOTES.md when the behavior, architecture, deployment, or operational rules changed
 3. Keep SECURITY.md current for authentication, session, cookie, and data-protection changes
+
+Sensitive information rule:
+
+- Never write real passwords into code, logs, documentation, tests, commits, or deployment notes.

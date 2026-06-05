@@ -69,6 +69,17 @@ Security requirements:
 - Unauthenticated users cannot access /app
 - Frontend must not rely only on localStorage authentication state
 - Backend authentication validation is mandatory
+- Real passwords must never be written into code, logs, documentation, test fixtures, or commits
+
+## Account Security
+
+Implemented account security functions:
+- Authenticated admins can change their password from the `/app` account security view.
+- Password changes require the current password even when the user is already logged in.
+- New password validation requires a non-empty value, at least 8 characters, matching confirmation, and a value different from the current password.
+- Passwords continue to use the existing PBKDF2-SHA256 hash storage and are never stored in plaintext.
+- After a successful password change, all sessions for that user are deleted, the session cookie is cleared, and the browser returns to the login page.
+- Do not document, log, commit, or paste real admin passwords into the repository.
 
 ## /app Session Expiry Reauthentication
 
@@ -213,6 +224,7 @@ DO NOT:
 - Break cookie clearing behavior
 - Redirect from ordinary /app business save flows to the full login page on session expiry
 - Clear unsaved form input during local reauthentication
+- Write real passwords into code, logs, docs, tests, commits, or deployment notes
 
 ---
 

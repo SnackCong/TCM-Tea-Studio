@@ -40,6 +40,7 @@
           <button class="nav-tab" data-view="clients" type="button">顾客档案</button>
           <button class="nav-tab" data-view="formulas" type="button">配方库</button>
           <button class="nav-tab" data-view="export" type="button">导出配方单</button>
+          <button class="nav-tab" data-view="account" type="button">账号安全</button>
         </nav>
         <div class="side-panel">
           <span class="panel-label">今日待处理</span>
@@ -294,9 +295,30 @@
             <article class="formula-sheet" id="formulaSheet"></article>
           </div>
         </section>
+
+        <section class="view" id="accountView">
+          <div class="split-layout">
+            <form class="editor-panel" id="passwordForm">
+              <div class="section-heading">
+                <h3>修改管理员密码</h3>
+              </div>
+              <label>当前密码<input id="currentPassword" autocomplete="current-password" required type="password" /></label>
+              <label>新密码<input id="newPassword" autocomplete="new-password" required minlength="8" type="password" /></label>
+              <label>确认新密码<input id="confirmPassword" autocomplete="new-password" required minlength="8" type="password" /></label>
+              <button class="primary-button" type="submit">修改密码</button>
+              <p class="auth-message" id="passwordMessage"></p>
+            </form>
+            <section class="work-section">
+              <div class="section-heading">
+                <h3>账号安全</h3>
+              </div>
+              <div class="empty-state">修改密码前需要输入当前密码。修改成功后，系统会退出当前登录并要求重新登录。</div>
+            </section>
+          </div>
+        </section>
       </main>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260604-client-mode"></script>
+    <script src="app.js?v=20260605-change-password"></script>
   </body>
 </html>

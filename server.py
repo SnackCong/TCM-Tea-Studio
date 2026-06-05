@@ -488,6 +488,8 @@ class Handler(SimpleHTTPRequestHandler):
 
             if path == "/api/data" and method == "GET":
                 return self.data()
+            if path == "/api/change-password" and method == "POST":
+                return self.change_password(user)
             if path == "/api/demo" and method == "POST":
                 return self.demo()
             if path == "/api/clients" and method == "POST":
@@ -547,6 +549,44 @@ class Handler(SimpleHTTPRequestHandler):
             with connect() as conn:
                 conn.execute("DELETE FROM sessions WHERE token = ?", (token.value,))
         response_json(self, {"ok": True}, headers={"Set-Cookie": cookie_header("", expires=True)})
+
+    def change_password(self, user):
+        payload = read_json(self)
+        current_password = payload.get("currentPassword") or ""
+        new_password = payload.get("newPassword") or ""
+        confirm_password = payload.get("confirmPassword") or ""
+
+        if not current_password:
+            response_json(self, {"error": "请输入当前密码"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not new_password:
+            response_json(self, {"error": "请输入新密码"}, HTTPStatus.BAD_REQUEST)
+            return
+        if len(new_password) < 8:
+            response_json(self, {"error": "新密码至少需要 8 位"}, HTTPStatus.BAD_REQUEST)
+            return
+        if new_password != confirm_password:
+            response_json(self, {"error": "两次输入的新密码不一致"}, HTTPStatus.BAD_REQUEST)
+            return
+        if hmac.compare_digest(current_password, new_password):
+            response_json(self, {"error": "新密码不能和当前密码相同"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        with connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+            if not row or not verify_password(current_password, row["password_hash"]):
+                response_json(self, {"error": "当前密码不正确"}, HTTPStatus.BAD_REQUEST)
+                return
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (password_hash(new_password), user["id"]),
+            )
+            conn.execute("DELETE FROM sessions WHERE user_id = ?", (user["id"],))
+        response_json(
+            self,
+            {"ok": True, "message": "密码已修改，请重新登录"},
+            headers={"Set-Cookie": cookie_header("", expires=True)},
+        )
 
     def session(self):
         user = self.current_user()

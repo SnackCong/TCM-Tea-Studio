@@ -1,6 +1,6 @@
 # Security Notes
 
-Last checked: 2026-06-03
+Last checked: 2026-06-05
 
 ## Current Auth Status
 
@@ -13,6 +13,7 @@ API endpoints that expose or mutate business data are protected by the server-si
 - `POST /api/client-formulas`
 - `POST /api/formulas`
 - `PUT /api/formulas/<id>`
+- `POST /api/change-password`
 
 Anonymous API checks returned `401` with:
 
@@ -30,6 +31,7 @@ The login page and business app shell are separated at the server route level:
 - Login/app HTML, business scripts, and API responses send `Cache-Control: no-store`; the app shell loads a versioned `app.js` URL to avoid stale edge caches serving the wrong asset after auth-route changes.
 - Login sessions expire after `1800` seconds by default. The browser cookie uses `Max-Age=1800`, and every protected page/API request also checks the server-side `sessions.expires_at` value.
 - `POST /api/logout` deletes the current server-side session and clears the session cookie with `Max-Age=0` and an expired `Expires` value.
+- `POST /api/change-password` requires an authenticated session and also verifies the current password before updating the stored password hash. New passwords must be non-empty, at least 8 characters, match the confirmation field, and differ from the current password. Successful password changes delete all sessions for the user and clear the browser cookie.
 - Inside the authenticated app, protected API `401` responses and save actions with missing in-memory user state open a local re-login modal instead of navigating away. The page is not refreshed, unsaved form input remains in place, and the failed request is retried after `/api/login` plus `/api/me` confirm the admin session.
 - `/app` business flows must not call `/login` directly on session expiry. Direct login-page navigation is reserved for initial unauthenticated page loads, explicit re-login cancellation, and active logout.
 - Session-expiry verification uses the local CLI helper `scripts/expire_session.py`; no public test endpoint is exposed.
@@ -41,6 +43,7 @@ This prevents the customer, case-center, formula-library, and export UI shell fr
 - There is one admin account model; no per-user roles or audit log yet.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, `Max-Age=1800`, and `Secure` in the default production configuration. For local HTTP-only development, set `TCM_COOKIE_SECURE=0`.
 - Current Cloudflare origin certificate is self-signed. It works with Cloudflare Full, but Full strict should use Cloudflare Origin CA or Let's Encrypt.
+- Never write real passwords into source code, logs, documentation, test fixtures, or Git commits.
 
 ## Minimal Security Hardening Plan
 

@@ -181,7 +181,7 @@ function setView(view) {
   $$(".view").forEach((el) => el.classList.remove("active"));
   $(`#${view}View`).classList.add("active");
   $$(".nav-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === view));
-  $("#viewTitle").textContent = { dashboard: "总览", clients: "顾客档案", clientDetail: "客户病例中心", formulas: "配方库", export: "导出配方单" }[view];
+  $("#viewTitle").textContent = { dashboard: "总览", clients: "顾客档案", clientDetail: "客户病例中心", formulas: "配方库", export: "导出配方单", account: "账号安全" }[view];
   if (view === "export") renderFormulaSheet();
   if (view === "clientDetail") renderClientDetail();
 }
@@ -386,6 +386,11 @@ function resetClientFormulaForm() {
 function resetTodoForm() {
   $("#todoForm").reset();
   $("#todoId").value = "";
+}
+
+function resetPasswordForm() {
+  $("#passwordForm").reset();
+  $("#passwordMessage").textContent = "";
 }
 
 function sessionsForClient(clientId) {
@@ -809,6 +814,35 @@ function bindEvents() {
   $("#exportFormula").addEventListener("change", renderFormulaSheet);
   $("#printFormula").addEventListener("click", () => window.print());
   $("#copyFormula").addEventListener("click", copyFormulaText);
+  $("#passwordForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = $("#passwordMessage");
+    message.textContent = "";
+    try {
+      await requireAuthOrReauth();
+      const currentPassword = $("#currentPassword").value;
+      const newPassword = $("#newPassword").value;
+      const confirmPassword = $("#confirmPassword").value;
+      const data = await api("/api/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      });
+      $("#currentPassword").value = "";
+      $("#newPassword").value = "";
+      $("#confirmPassword").value = "";
+      message.textContent = data.message || "密码已修改，请重新登录";
+      state.user = null;
+      state.clients = [];
+      state.formulas = [];
+      state.formulaTemplates = [];
+      state.clientSessions = [];
+      state.clientFormulas = [];
+      state.clientTodos = [];
+      window.setTimeout(() => showLogin("密码已修改，请重新登录"), 600);
+    } catch (error) {
+      message.textContent = error.message || "密码修改失败";
+    }
+  });
 
   $("#reauthCancel").addEventListener("click", () => {
     reauthController?.reject(new Error("重新登录已取消"));

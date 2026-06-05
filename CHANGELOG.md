@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-06-05
+
+- Added an authenticated account security view for changing the admin password with current-password verification, basic strength checks, PBKDF2 hashing, session invalidation, and login redirect after success.
+
 ## 2026-06-04
 
 - Added a visible customer profile form mode banner that distinguishes new customer creation from editing an existing customer, with `+ 新建客户` and `取消编辑` controls.
