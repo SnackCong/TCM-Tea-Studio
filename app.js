@@ -637,7 +637,7 @@ function addIngredientRow(name = "", grams = "") {
     <input class="ingredient-name" placeholder="药材名称" value="${escapeHtml(name)}" />
     <input class="ingredient-grams" type="number" min="0" step="0.1" placeholder="0" value="${escapeHtml(grams)}" />
     <span class="composition-unit">g</span>
-    <button class="icon-button" type="button" title="删除">×</button>
+    <button class="icon-button" type="button" title="删除">删除</button>
   `;
   row.querySelector(".icon-button").addEventListener("click", () => {
     row.remove();

@@ -2,6 +2,7 @@
 
 ## 2026-06-05
 
+- Refined the formula template ingredient detail layout so each herb, dosage, unit, and delete control stays aligned on one horizontal row on desktop.
 - Reworked the formula library form with explicit new/edit mode banners, `+ 新建配方`, `取消编辑`, and a saved confirmation to reduce accidental edits.
 - Replaced duplicate composition/default-dosage textareas with structured ingredient rows, automatic `composition` and `default_dosage` generation, package count, and live gram-weight totals.
 - Removed the duplicate legacy ingredient entry module from the formula template page and kept formula template JSON imports compatible with the existing file format.

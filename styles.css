@@ -414,20 +414,36 @@ button {
 .composition-header,
 .composition-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 100px 42px 34px;
+  grid-template-columns: minmax(140px, 168px) 76px 28px 54px;
   gap: 8px;
   align-items: center;
+  justify-content: start;
 }
 
 .composition-header {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+  padding: 0 2px;
 }
 
 .composition-rows {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+
+.composition-row input {
+  height: 40px;
+  padding: 9px 10px;
+}
+
+.composition-row .ingredient-name {
+  width: 100%;
+}
+
+.composition-row .ingredient-grams {
+  width: 76px;
+  text-align: right;
 }
 
 .composition-unit {
@@ -613,12 +629,13 @@ textarea {
 }
 
 .icon-button {
-  width: 36px;
+  width: 54px;
+  height: 40px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
   color: var(--rose);
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -791,6 +808,20 @@ td {
 
   .ingredient-row {
     grid-template-columns: 1fr 86px 36px;
+  }
+
+  .composition-header,
+  .composition-row {
+    grid-template-columns: minmax(112px, 1fr) 70px 24px 50px;
+    gap: 6px;
+  }
+
+  .composition-row .ingredient-grams {
+    width: 70px;
+  }
+
+  .icon-button {
+    width: 50px;
   }
 }
 

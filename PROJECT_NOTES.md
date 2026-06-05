@@ -116,6 +116,7 @@ UX and data-entry decision:
 - `+ 新建配方` and `取消编辑` both clear the form and return it to new mode.
 - Formula template composition is entered through structured ingredient rows instead of separate free-text composition and dosage fields.
 - The structured rows generate the existing `composition` field as ingredient names joined by `、` and `default_dosage` as `药名剂量g` entries joined by `，`.
+- Each structured ingredient row should remain horizontally aligned on desktop: herb name, dosage, fixed `g` unit, and delete control. Mobile layouts may tighten or wrap when space is constrained.
 - The formula library records package count, single-package grams, and total grams for quick template-level dosing estimates.
 - The previous duplicate ingredient module on the formula library page was removed; formula template entry should use only the structured composition rows.
 - When existing `default_dosage` text can be parsed, the edit form reconstructs structured rows. If parsing fails, the UI keeps the old text visible in a warning and requires manual cleanup before saving.
