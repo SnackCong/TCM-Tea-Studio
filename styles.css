@@ -404,7 +404,7 @@ button {
 
 .composition-panel {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
@@ -414,8 +414,8 @@ button {
 .composition-header,
 .composition-row {
   display: grid;
-  grid-template-columns: minmax(144px, 168px) 76px 28px minmax(64px, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(180px, 220px) 78px 28px minmax(42px, 1fr);
+  gap: 12px;
   align-items: center;
   width: 100%;
 }
@@ -424,7 +424,7 @@ button {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
-  padding: 0 4px;
+  padding: 0 4px 0 2px;
 }
 
 .composition-header span:nth-child(2),
@@ -432,9 +432,13 @@ button {
   text-align: center;
 }
 
+.composition-header span:last-child {
+  text-align: right;
+}
+
 .composition-rows {
   display: grid;
-  gap: 10px;
+  gap: 9px;
 }
 
 .composition-row input {
@@ -447,7 +451,7 @@ button {
 }
 
 .composition-row .ingredient-grams {
-  width: 76px;
+  width: 78px;
   text-align: center;
 }
 
@@ -637,31 +641,62 @@ textarea {
 
 .icon-button {
   justify-self: end;
-  width: 54px;
-  height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--rose);
-  font-size: 13px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
   font-weight: 800;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-button:hover {
+  border-color: #f1c7c2;
+  background: #fff1ef;
+  color: var(--rose);
 }
 
 .calc-strip {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
   background: #f2f5f2;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 12px;
+  padding: 8px;
   font-size: 13px;
 }
 
-.calc-strip strong {
+.calc-card {
+  display: grid;
+  min-height: 68px;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px;
+  text-align: center;
+}
+
+.calc-card strong {
   display: block;
-  margin-top: 4px;
   font-size: 20px;
+  color: var(--ink);
+}
+
+.calc-package input {
+  justify-self: center;
+  width: 78px;
+  height: 34px;
+  padding: 7px 8px;
+  text-align: center;
 }
 
 .bar-row {
@@ -820,16 +855,16 @@ td {
 
   .composition-header,
   .composition-row {
-    grid-template-columns: minmax(112px, 1fr) 70px 24px 50px;
+    grid-template-columns: minmax(112px, 1fr) 66px 24px 32px;
     gap: 6px;
   }
 
   .composition-row .ingredient-grams {
-    width: 70px;
+    width: 66px;
   }
 
   .icon-button {
-    width: 50px;
+    width: 32px;
   }
 }
 

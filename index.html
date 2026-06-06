@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TCM Tea Studio | 中药代茶饮配方管理</title>
-    <link rel="stylesheet" href="styles.css?v=20260605-formula-row-align" />
+    <link rel="stylesheet" href="styles.css?v=20260606-composition-ui" />
   </head>
   <body>
     <section class="reauth-overlay" id="reauthOverlay" aria-hidden="true">
@@ -268,13 +268,20 @@
                   <span></span>
                 </div>
                 <div class="composition-rows" id="formulaIngredientRows"></div>
-                <div class="two-col">
-                  <label>包数<input id="formulaPackageCount" type="number" min="1" step="1" value="14" /></label>
-                </div>
-                <div class="calc-strip">
-                  <span>单包总克数 <strong id="singleWeight">0g</strong></span>
-                  <span>包数 <strong id="totalBags">14</strong></span>
-                  <span>总克重 <strong id="totalWeight">0g</strong></span>
+                <div class="calc-strip formula-calc-strip">
+                  <div class="calc-card">
+                    <span>单包总克数</span>
+                    <strong id="singleWeight">0g</strong>
+                  </div>
+                  <label class="calc-card calc-package">
+                    <span>包数</span>
+                    <input id="formulaPackageCount" type="number" min="1" step="1" value="14" />
+                    <strong id="totalBags" hidden>14</strong>
+                  </label>
+                  <div class="calc-card">
+                    <span>总克重</span>
+                    <strong id="totalWeight">0g</strong>
+                  </div>
                 </div>
               </section>
               <label>用法<textarea id="usage" rows="3">每日代茶温饮，饭后或两餐间饮用。</textarea></label>
@@ -337,6 +344,6 @@
       </main>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260605-formula-structure"></script>
+    <script src="app.js?v=20260606-composition-ui"></script>
   </body>
 </html>

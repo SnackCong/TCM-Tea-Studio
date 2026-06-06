@@ -118,6 +118,7 @@ UX and data-entry decision:
 - The structured rows generate the existing `composition` field as ingredient names joined by `、` and `default_dosage` as `药名剂量g` entries joined by `，`.
 - Each structured ingredient row should remain horizontally aligned on desktop: herb name, dosage, fixed `g` unit, and delete control. Mobile layouts may tighten or wrap when space is constrained.
 - Ingredient rows use fixed alignment columns for herb name, dosage, and unit, with the delete control pushed toward the available right-side space for clearer scanning and safer clicking.
+- The composition detail UI uses table-like alignment columns, a lightweight `×` delete control that becomes prominent on hover, and package count integrated into the gram summary panel.
 - The formula library records package count, single-package grams, and total grams for quick template-level dosing estimates.
 - The previous duplicate ingredient module on the formula library page was removed; formula template entry should use only the structured composition rows.
 - When existing `default_dosage` text can be parsed, the edit form reconstructs structured rows. If parsing fails, the UI keeps the old text visible in a warning and requires manual cleanup before saving.

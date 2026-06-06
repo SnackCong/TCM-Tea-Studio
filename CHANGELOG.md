@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-06-06
+
+- Refined the formula template composition detail UI with aligned table-like columns, a lightweight `×` delete control, and package count integrated into the gram summary panel.
+
 ## 2026-06-05
 
 - Tuned formula template ingredient row alignment so dosage text is centered, units align vertically, and the delete control uses the right-side space.
